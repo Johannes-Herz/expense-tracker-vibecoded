@@ -78,3 +78,32 @@ Bottom tab navigation with 3 tabs:
 - All three charts show correct data.
 - CSV/JSON export works, and JSON import restores data.
 - The app can be installed to the home screen and opens offline.
+
+---
+
+# Addendum: Recurring (fixed) expenses
+
+## Behaviour
+- A recurring expense ("series") has: amount, category, note/name, frequency (daily, weekly, monthly, yearly) with an interval (every N units), start date (first occurrence), optional end date, and a paused flag.
+- Generated expenses are normal expenses (list, stats, charts, budget bar, CSV/JSON export). They carry `recurringId` + `occurrenceDate` and get a small recurring icon in the list (UI phase).
+- **Generation**: the app cannot run in the background, so `generateDueExpenses()` runs on app start and whenever the app becomes visible again. It creates all occurrences up to today that were missed. Future dates are never created.
+- **No duplicates**: each series has a cursor `generatedThrough` (processed up to this date), runs happen in one Dexie transaction, and a unique index `[recurringId+occurrenceDate]` guards against double creation (multiple tabs, import).
+- **Date rules**: occurrences are computed from the start date, not from the previous one. Monthly on the 31st → last day of shorter months (Jan 31, Feb 28/29, Mar 31). Yearly on 29 Feb → 28 Feb in non-leap years. Pure date math, so time zones and DST do not matter.
+- **Editing a series**: affects future occurrences only; already generated expenses stay untouched. Moving the start date back never recreates occurrences before the cursor.
+- **Pause/resume**: paused series create nothing; resuming skips the paused period (no catch-up).
+- **Deleting a series**: generated expenses are kept as normal expenses (optionally deleted together).
+- **Single generated expenses**: can be edited or deleted freely; a deleted one is not regenerated.
+- **Past start date**: when creating a series the user chooses whether to create past occurrences (default: yes).
+- **Backup**: JSON backup version 2 contains `recurring`; version 1 backups still import. Replace restores 1:1, merge matches identical series and skips existing occurrences. CSV has a last column "Wiederkehrend" (Ja/Nein).
+- **Demo data**: rent, streaming and music (monthly) and an insurance (yearly) are recurring series.
+
+## Data model (Dexie version 2, additive migration)
+- `recurring`: `++id, categoryId` – `{ id, amountCents, categoryId, note?, frequency, interval, startDate, endDate?, paused, generatedThrough?, createdAt }`
+- `expenses`: index `&[recurringId+occurrenceDate]` added; optional fields `recurringId`, `occurrenceDate`.
+- Date logic: `src/lib/recurrence.ts` (unit tests with Vitest: `npm test`).
+
+## UI (planned, next phase)
+- "Recurring" checkbox in the add-expense form that expands to frequency/interval/end date and the "create past occurrences" toggle.
+- Recurring icon on generated expenses in the list.
+- "Recurring expenses" section in Settings: list, edit, pause/resume, delete.
+- Optional "Upcoming fixed costs this month" card on the Stats screen.

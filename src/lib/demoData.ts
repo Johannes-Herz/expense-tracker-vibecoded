@@ -1,4 +1,4 @@
-import { db, type Expense } from '../db'
+import { addRecurring, db, type Expense } from '../db'
 import { addMonths, currentMonth, daysInMonth, today } from './dates'
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
@@ -24,10 +24,7 @@ export async function loadDemoData(): Promise<number> {
     const m = addMonths(currentMonth(), i)
     const anyDay = () => randInt(1, 28)
 
-    add(m, 1, 'Housing', 72000, 'Miete')
     add(m, 3, 'Housing', euros(55, 85), 'Strom & Internet')
-    add(m, 5, 'Subscriptions', 1299, 'Streaming')
-    add(m, 8, 'Subscriptions', 1099, 'Musik')
 
     for (let n = 0; n < randInt(7, 10); n++) add(m, anyDay(), 'Groceries', euros(8, 75), pick(['Supermarkt', 'Bäcker', 'Wochenmarkt', undefined]))
     for (let n = 0; n < randInt(4, 8); n++) add(m, anyDay(), 'Eating out', euros(6, 48), pick(['Mittagessen', 'Café', 'Pizza', 'Restaurant', undefined]))
@@ -40,7 +37,20 @@ export async function loadDemoData(): Promise<number> {
   }
 
   await db.expenses.bulkAdd(items as Expense[])
-  return items.length
+
+  // Fixed costs are recurring series; the generator creates their expenses for the past 12 months.
+  const expensesBefore = await db.expenses.count()
+  const firstMonth = addMonths(currentMonth(), -11)
+  const series = [
+    { category: 'Housing', amountCents: 72000, note: 'Miete', frequency: 'monthly', startDate: `${firstMonth}-01` },
+    { category: 'Subscriptions', amountCents: 1299, note: 'Streaming', frequency: 'monthly', startDate: `${firstMonth}-05` },
+    { category: 'Subscriptions', amountCents: 1099, note: 'Musik', frequency: 'monthly', startDate: `${firstMonth}-08` },
+    { category: 'Other', amountCents: 24000, note: 'Haftpflichtversicherung', frequency: 'yearly', startDate: `${addMonths(currentMonth(), -5)}-15` },
+  ] as const
+  for (const { category, ...rest } of series) {
+    await addRecurring({ ...rest, categoryId: idOf(category), interval: 1 }, true)
+  }
+  return items.length + (await db.expenses.count()) - expensesBefore
 }
 
 function pick<T>(list: T[]): T {
