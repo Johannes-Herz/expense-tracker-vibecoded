@@ -19,7 +19,7 @@ First, make a plan. Once I approve the plan, start by saving this entire message
 - Never push, never pull, never create repositories, and never change any remote settings. I will handle merging and pushing myself.
 
 ## Deployment
-- The app will be hosted on GitHub Pages from the repo "vibe-expense-tracker". Configure the Vite base path for that.
+- The app will be hosted on GitHub Pages from the repo "expense-tracker-vibecoded". Configure the Vite base path for that.
 - Add a GitHub Actions workflow file (.github/workflows/deploy.yml) that builds the app and deploys it to GitHub Pages whenever I push to "main". Don't push or deploy anything yourself.
 - In the README, tell me which one-time setting I need to change on GitHub to enable Pages with GitHub Actions.
 

@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // Must match the GitHub repo name used for GitHub Pages.
-const REPO_NAME = 'vibe-expense-tracker'
+const REPO_NAME = 'expense-tracker-vibecoded'
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {

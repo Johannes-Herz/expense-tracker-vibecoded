@@ -41,7 +41,7 @@ Vite prints a `Network:` address like `http://192.168.x.x:5173`. Open it in Chro
 
 ## Deploy to GitHub Pages
 
-The app is built for the repo name `vibe-expense-tracker` (`REPO_NAME` at the top of `vite.config.ts`). If your repo is named differently, change it there – the URL will be `https://<user>.github.io/<repo>/`.
+The app is built for the repo name `expense-tracker-vibecoded` (`REPO_NAME` at the top of `vite.config.ts`). If your repo is named differently, change it there – the URL will be `https://<user>.github.io/<repo>/` (for this repo: https://johannes-herz.github.io/expense-tracker-vibecoded/).
 
 **One-time setting on GitHub:**
 1. Open the repo on GitHub → **Settings → Pages**.
