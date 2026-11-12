@@ -102,8 +102,8 @@ Bottom tab navigation with 3 tabs:
 - `expenses`: index `&[recurringId+occurrenceDate]` added; optional fields `recurringId`, `occurrenceDate`.
 - Date logic: `src/lib/recurrence.ts` (unit tests with Vitest: `npm test`).
 
-## UI (planned, next phase)
-- "Recurring" checkbox in the add-expense form that expands to frequency/interval/end date and the "create past occurrences" toggle.
-- Recurring icon on generated expenses in the list.
-- "Recurring expenses" section in Settings: list, edit, pause/resume, delete.
-- Optional "Upcoming fixed costs this month" card on the Stats screen.
+## UI
+- Add-expense form: a "🔁 Wiederkehrend" checkbox expands frequency, interval, end date and (for a start date in the past) a "create past occurrences" toggle with a live count. The date field becomes the start date.
+- Generated expenses show a small 🔁 icon in the list; editing one only changes that single expense.
+- Settings → "Wiederkehrende Ausgaben": list with schedule and next date, tap to edit (changes apply to future occurrences only), ⏸️/▶️ to pause/resume, delete with an optional "also delete generated expenses" checkbox, and "+ Wiederkehrende Ausgabe" to add one.
+- Stats: card "Anstehende Fixkosten diesen Monat" (current month only) listing the recurring costs still due this month and their sum.
