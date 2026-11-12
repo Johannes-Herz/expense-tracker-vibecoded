@@ -1,3 +1,5 @@
+import type { Frequency } from './recurrence'
+
 // German-locale formatting and amount parsing.
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
@@ -52,6 +54,20 @@ export function parseAmountToCents(input: string): number | null {
   if (!/^\d+(\.\d{1,2})?$/.test(s)) return null
   const cents = Math.round(parseFloat(s) * 100)
   return cents > 0 ? cents : null
+}
+
+/** Unit words for "every N …" (singular, plural). */
+export const FREQUENCY_UNITS: Record<Frequency, [string, string]> = {
+  daily: ['Tag', 'Tage'],
+  weekly: ['Woche', 'Wochen'],
+  monthly: ['Monat', 'Monate'],
+  yearly: ['Jahr', 'Jahre'],
+}
+
+/** ("monthly", 1) → "monatlich"; ("weekly", 2) → "alle 2 Wochen" */
+export function formatSchedule(frequency: Frequency, interval: number): string {
+  if (interval === 1) return { daily: 'täglich', weekly: 'wöchentlich', monthly: 'monatlich', yearly: 'jährlich' }[frequency]
+  return `alle ${interval} ${FREQUENCY_UNITS[frequency][1]}`
 }
 
 /** 1250 → "12,50" (for pre-filling the amount input when editing) */

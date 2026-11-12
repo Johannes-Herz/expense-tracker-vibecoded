@@ -47,6 +47,11 @@ export default function ExpenseList({ expenses, categories, onSelect }: Props) {
                       <span className="block truncate font-medium">{cat?.name ?? 'Unbekannt'}</span>
                       {e.note && <span className="block truncate text-sm text-slate-500 dark:text-slate-400">{e.note}</span>}
                     </span>
+                    {e.recurringId !== undefined && (
+                      <span className="text-sm text-slate-400" title="Wiederkehrend" aria-label="Wiederkehrend">
+                        🔁
+                      </span>
+                    )}
                     <span className="font-semibold tabular-nums">{formatEUR(e.amountCents)}</span>
                   </button>
                 </li>

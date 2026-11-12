@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
 interface Props {
   title: string
   message?: string
+  children?: ReactNode // extra content, e.g. a checkbox
   confirmLabel?: string
   /** If set, the user must type this word before the confirm button is enabled. */
   requireText?: string
@@ -10,7 +11,7 @@ interface Props {
   onCancel: () => void
 }
 
-export default function ConfirmDialog({ title, message, confirmLabel = 'Löschen', requireText, onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ title, message, children, confirmLabel = 'Löschen', requireText, onConfirm, onCancel }: Props) {
   const [typed, setTyped] = useState('')
   const allowed = !requireText || typed.trim().toUpperCase() === requireText.toUpperCase()
 
@@ -22,6 +23,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Löschen
       >
         <h2 className="text-lg font-semibold">{title}</h2>
         {message && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{message}</p>}
+        {children}
         {requireText && (
           <input
             autoFocus
