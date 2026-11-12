@@ -5,6 +5,7 @@ import { getSetting, SETTING_THEME } from './db'
 import { currentMonth } from './lib/dates'
 import { applyTheme, type Theme } from './lib/theme'
 import ExpensesScreen from './screens/ExpensesScreen'
+import SettingsScreen from './screens/SettingsScreen'
 import StatsScreen from './screens/StatsScreen'
 
 export default function App() {
@@ -20,12 +21,8 @@ export default function App() {
     <div className="mx-auto min-h-full max-w-md px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
       {tab === 'expenses' && <ExpensesScreen month={month} onMonthChange={setMonth} />}
       {tab === 'stats' && <StatsScreen month={month} onMonthChange={setMonth} />}
-      {tab === 'settings' && <Placeholder name="Einstellungen" />}
+      {tab === 'settings' && <SettingsScreen />}
       <TabBar tab={tab} onChange={setTab} />
     </div>
   )
-}
-
-function Placeholder({ name }: { name: string }) {
-  return <p className="py-20 text-center text-slate-500">{name} folgt bald.</p>
 }
