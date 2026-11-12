@@ -1,0 +1,49 @@
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from 'chart.js'
+import { useEffect, useState } from 'react'
+import { formatEUR } from '../lib/format'
+
+// Register only what we use (keeps the bundle small).
+Chart.register(ArcElement, BarElement, CategoryScale, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip)
+Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+Chart.defaults.maintainAspectRatio = false
+
+/** Colors for axis text and grid lines; updates when the dark class on <html> changes. */
+export function useChartTheme() {
+  const read = () => document.documentElement.classList.contains('dark')
+  const [dark, setDark] = useState(read)
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => setDark(read()))
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return {
+    dark,
+    text: dark ? '#94a3b8' : '#64748b',
+    grid: dark ? '#1e293b' : '#e2e8f0',
+    surface: dark ? '#0f172a' : '#ffffff',
+  }
+}
+
+/** Shared tooltip option: shows values as "12,50 €". */
+export const eurTooltip = {
+  callbacks: {
+    label: (ctx: { dataset: { label?: string }; parsed: number | { y: number | null } }) => {
+      const value = typeof ctx.parsed === 'number' ? ctx.parsed : (ctx.parsed.y ?? 0)
+      const label = ctx.dataset.label ? `${ctx.dataset.label}: ` : ''
+      return `${label}${formatEUR(value)}`
+    },
+  },
+}

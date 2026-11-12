@@ -5,6 +5,7 @@ import { getSetting, SETTING_THEME } from './db'
 import { currentMonth } from './lib/dates'
 import { applyTheme, type Theme } from './lib/theme'
 import ExpensesScreen from './screens/ExpensesScreen'
+import StatsScreen from './screens/StatsScreen'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('expenses')
@@ -18,7 +19,7 @@ export default function App() {
   return (
     <div className="mx-auto min-h-full max-w-md px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
       {tab === 'expenses' && <ExpensesScreen month={month} onMonthChange={setMonth} />}
-      {tab === 'stats' && <Placeholder name="Statistik" />}
+      {tab === 'stats' && <StatsScreen month={month} onMonthChange={setMonth} />}
       {tab === 'settings' && <Placeholder name="Einstellungen" />}
       <TabBar tab={tab} onChange={setTab} />
     </div>
