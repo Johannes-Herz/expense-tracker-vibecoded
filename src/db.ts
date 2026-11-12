@@ -1,4 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { cursorOnResume, initialCursor, planGeneration, type Frequency } from './lib/recurrence'
+import { today } from './lib/dates'
 
 export interface Category {
   id: number
@@ -14,6 +16,25 @@ export interface Expense {
   date: string // local date as "YYYY-MM-DD" (sorts correctly as text)
   note?: string
   createdAt: number // ms since epoch
+  // Set only on expenses generated from a recurring series. `occurrenceDate` is the date the
+  // schedule produced (it stays the same if the expense's own date is edited later).
+  recurringId?: number
+  occurrenceDate?: string
+}
+
+// A recurring expense definition ("series"). Generated expenses are normal Expense rows.
+export interface RecurringExpense {
+  id: number
+  amountCents: number
+  categoryId: number
+  note?: string // name, e.g. "Miete"
+  frequency: Frequency
+  interval: number // every N days/weeks/months/years, >= 1
+  startDate: string // "YYYY-MM-DD", first occurrence
+  endDate?: string // optional last possible occurrence (inclusive)
+  paused: boolean
+  generatedThrough?: string // cursor: occurrences on or before this date were already processed
+  createdAt: number
 }
 
 // Simple key/value store for app settings (budget, theme, ...).
@@ -37,6 +58,7 @@ export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
 
 export const db = new Dexie('ExpenseTracker') as Dexie & {
   expenses: EntityTable<Expense, 'id'>
+  recurring: EntityTable<RecurringExpense, 'id'>
   categories: EntityTable<Category, 'id'>
   settings: EntityTable<Setting, 'key'>
 }
@@ -46,6 +68,13 @@ db.version(1).stores({
   expenses: '++id, date, categoryId',
   categories: '++id',
   settings: 'key',
+})
+
+// v2: recurring expenses. The unique compound index guarantees one expense per series occurrence;
+// expenses without these fields (all existing ones) are simply not part of that index.
+db.version(2).stores({
+  expenses: '++id, date, categoryId, &[recurringId+occurrenceDate]',
+  recurring: '++id, categoryId',
 })
 
 // Fill the category list the very first time the database is created.
@@ -86,6 +115,98 @@ export function deleteExpense(id: number) {
   return db.expenses.delete(id)
 }
 
+// ---------- Recurring expense helpers ----------
+
+/** Key range matching all expenses of one series in the [recurringId+occurrenceDate] index. */
+const seriesRange = (id: number) => [
+  [id, ''],
+  [id, '\uffff'],
+]
+
+/**
+ * Creates every occurrence that is due (up to today) for all active series, then moves each
+ * series' cursor to today. Safe to call any number of times, from any number of tabs:
+ * it runs in one transaction, the cursor skips processed dates, and the unique index backs it up.
+ * Returns the number of expenses created.
+ */
+export function generateDueExpenses(todayStr: string = today()): Promise<number> {
+  return db.transaction('rw', db.recurring, db.expenses, async () => {
+    let created = 0
+    for (const series of await db.recurring.toArray()) {
+      const { occurrences, newCursor } = planGeneration(series, todayStr)
+      if (occurrences.length > 0) {
+        const [lo, hi] = seriesRange(series.id)
+        const existing = new Set(
+          (await db.expenses.where('[recurringId+occurrenceDate]').between(lo, hi, true, true).toArray()).map(
+            (e) => e.occurrenceDate,
+          ),
+        )
+        const now = Date.now()
+        const fresh = occurrences
+          .filter((date) => !existing.has(date))
+          .map((date, i) => ({
+            amountCents: series.amountCents,
+            categoryId: series.categoryId,
+            date,
+            note: series.note,
+            createdAt: now + i,
+            recurringId: series.id,
+            occurrenceDate: date,
+          }))
+        await db.expenses.bulkAdd(fresh as Expense[])
+        created += fresh.length
+      }
+      if (newCursor !== series.generatedThrough) await db.recurring.update(series.id, { generatedThrough: newCursor })
+    }
+    return created
+  })
+}
+
+/** Create a series. `backfill` = also create occurrences between the start date and today. */
+export async function addRecurring(
+  data: Omit<RecurringExpense, 'id' | 'createdAt' | 'paused' | 'generatedThrough'>,
+  backfill: boolean,
+): Promise<number> {
+  const id = await db.recurring.add({
+    ...data,
+    paused: false,
+    generatedThrough: initialCursor(backfill, today()),
+    createdAt: Date.now(),
+  } as RecurringExpense)
+  await generateDueExpenses()
+  return id
+}
+
+/** Edit a series. Only future occurrences are affected; generated expenses are never touched. */
+export function updateRecurring(id: number, data: Partial<Omit<RecurringExpense, 'id' | 'createdAt' | 'generatedThrough'>>) {
+  return db.recurring.update(id, data)
+}
+
+/** Pause or resume. Resuming skips the paused period instead of catching up. */
+export async function setRecurringPaused(id: number, paused: boolean) {
+  const series = await db.recurring.get(id)
+  if (!series) return
+  await db.recurring.update(id, {
+    paused,
+    generatedThrough: paused ? series.generatedThrough : cursorOnResume(series.generatedThrough, today()),
+  })
+}
+
+/** Delete a series. Its generated expenses are kept as normal expenses unless `deleteExpenses` is set. */
+export function deleteRecurring(id: number, opts: { deleteExpenses?: boolean } = {}) {
+  return db.transaction('rw', db.recurring, db.expenses, async () => {
+    const [lo, hi] = seriesRange(id)
+    const generated = db.expenses.where('[recurringId+occurrenceDate]').between(lo, hi, true, true)
+    if (opts.deleteExpenses) await generated.delete()
+    else
+      await generated.modify((e) => {
+        delete e.recurringId
+        delete e.occurrenceDate
+      })
+    await db.recurring.delete(id)
+  })
+}
+
 // ---------- Category helpers ----------
 
 export function addCategory(data: Omit<Category, 'id'>) {
@@ -97,7 +218,11 @@ export function updateCategory(id: number, data: Partial<Omit<Category, 'id'>>) 
 }
 
 export async function isCategoryUsed(id: number) {
-  return (await db.expenses.where('categoryId').equals(id).count()) > 0
+  const [expenses, series] = await Promise.all([
+    db.expenses.where('categoryId').equals(id).count(),
+    db.recurring.where('categoryId').equals(id).count(),
+  ])
+  return expenses + series > 0
 }
 
 /** Deletes a category only if no expense uses it. Returns true if deleted. */
@@ -109,8 +234,8 @@ export async function deleteCategoryIfUnused(id: number) {
 
 /** Wipe everything and restore the default categories. */
 export async function resetAllData() {
-  await db.transaction('rw', db.expenses, db.categories, db.settings, async () => {
-    await Promise.all([db.expenses.clear(), db.categories.clear(), db.settings.clear()])
+  await db.transaction('rw', db.expenses, db.recurring, db.categories, db.settings, async () => {
+    await Promise.all([db.expenses.clear(), db.recurring.clear(), db.categories.clear(), db.settings.clear()])
     await db.categories.bulkAdd(DEFAULT_CATEGORIES as Category[])
   })
 }
