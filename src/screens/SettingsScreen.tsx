@@ -2,11 +2,24 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import CategoryEditor from '../components/CategoryEditor'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { getSetting, resetAllData, setSetting, SETTING_BUDGET, SETTING_THEME, type Category } from '../db'
+import ExpenseForm from '../components/ExpenseForm'
+import {
+  db,
+  getSetting,
+  resetAllData,
+  setRecurringPaused,
+  setSetting,
+  SETTING_BUDGET,
+  SETTING_THEME,
+  type Category,
+  type RecurringExpense,
+} from '../db'
 import { useBudget, useCategories } from '../hooks/useData'
 import { loadDemoData } from '../lib/demoData'
 import { exportCSV, exportJSON, importBackup, parseBackup } from '../lib/exportImport'
-import { centsToInput, parseAmountToCents } from '../lib/format'
+import { today } from '../lib/dates'
+import { centsToInput, formatDate, formatEUR, formatSchedule, parseAmountToCents } from '../lib/format'
+import { nextOccurrence } from '../lib/recurrence'
 import type { Theme } from '../lib/theme'
 
 type Backup = ReturnType<typeof parseBackup>
@@ -18,6 +31,9 @@ export default function SettingsScreen() {
 
   const [budgetText, setBudgetText] = useState('')
   const [editing, setEditing] = useState<Category | 'new' | null>(null)
+  const series = useLiveQuery(() => db.recurring.toArray(), []) ?? []
+  // null = closed, 'new' = adding a series, RecurringExpense = editing one
+  const [editingSeries, setEditingSeries] = useState<RecurringExpense | 'new' | null>(null)
   const [pendingImport, setPendingImport] = useState<Backup | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [message, setMessage] = useState('')
@@ -123,6 +139,49 @@ export default function SettingsScreen() {
         </button>
       </Section>
 
+      <Section title="Wiederkehrende Ausgaben">
+        {series.length === 0 ? (
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+            Noch keine. Miete, Abos oder Versicherungen werden automatisch als Ausgaben angelegt.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {series.map((r) => {
+              const cat = categories.find((c) => c.id === r.categoryId)
+              const next = nextOccurrence(r, today())
+              const status = r.paused ? 'pausiert' : next ? `nächste: ${formatDate(next)}` : 'beendet'
+              return (
+                <li key={r.id} className="flex items-center gap-2">
+                  <button onClick={() => setEditingSeries(r)} className={`flex min-h-16 min-w-0 flex-1 items-center gap-3 text-left ${r.paused ? 'opacity-60' : ''}`}>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `${cat?.color ?? '#64748b'}26` }}>
+                      {cat?.emoji ?? '❓'}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{r.note || cat?.name}</span>
+                      <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                        {formatSchedule(r.frequency, r.interval)} · {status}
+                      </span>
+                    </span>
+                    <span className="font-semibold tabular-nums">{formatEUR(r.amountCents)}</span>
+                  </button>
+                  <button
+                    onClick={() => setRecurringPaused(r.id, !r.paused)}
+                    aria-label={r.paused ? 'Fortsetzen' : 'Pausieren'}
+                    title={r.paused ? 'Fortsetzen' : 'Pausieren'}
+                    className="h-11 w-11 shrink-0 rounded-full text-lg active:bg-slate-100 dark:active:bg-slate-800"
+                  >
+                    {r.paused ? '▶️' : '⏸️'}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        <button onClick={() => setEditingSeries('new')} className={`${button} mt-3 text-indigo-600 dark:text-indigo-400`}>
+          + Wiederkehrende Ausgabe
+        </button>
+      </Section>
+
       <Section title="Daten">
         <div className="space-y-2">
           <button className={button} onClick={exportCSV}>📄 Export als CSV</button>
@@ -151,6 +210,15 @@ export default function SettingsScreen() {
       </Section>
 
       {editing && <CategoryEditor category={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} />}
+
+      {editingSeries && (
+        <ExpenseForm
+          series={editingSeries === 'new' ? undefined : editingSeries}
+          startRecurring={editingSeries === 'new'}
+          categories={categories}
+          onClose={() => setEditingSeries(null)}
+        />
+      )}
 
       {pendingImport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={() => setPendingImport(null)}>

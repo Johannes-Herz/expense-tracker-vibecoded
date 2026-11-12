@@ -89,3 +89,13 @@ export function cursorOnResume(current: string | undefined, today: string): stri
   const yesterday = addDays(today, -1)
   return current !== undefined && current > yesterday ? current : yesterday
 }
+
+/** First occurrence on or after `from`, or undefined if the series has ended. */
+export function nextOccurrence(s: Schedule, from: string): string | undefined {
+  for (let n = 0; n < MAX_OCCURRENCES; n++) {
+    const date = occurrenceDate(s, n)
+    if (s.endDate && date > s.endDate) return undefined
+    if (date >= from) return date
+  }
+  return undefined
+}

@@ -3,6 +3,7 @@ import {
   addDays,
   cursorOnResume,
   initialCursor,
+  nextOccurrence,
   occurrenceDate,
   occurrencesBetween,
   planGeneration,
@@ -118,5 +119,15 @@ describe('addDays', () => {
   it('crosses month and year boundaries', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28')
+  })
+})
+
+describe('nextOccurrence', () => {
+  it('finds the next date on or after a day, or undefined after the end date', () => {
+    const s = monthly('2026-01-31', 1, '2026-06-30')
+    expect(nextOccurrence(s, '2026-02-01')).toBe('2026-02-28')
+    expect(nextOccurrence(s, '2026-02-28')).toBe('2026-02-28')
+    expect(nextOccurrence(s, '2026-07-01')).toBeUndefined()
+    expect(nextOccurrence(monthly('2027-01-01'), '2026-11-13')).toBe('2027-01-01')
   })
 })
