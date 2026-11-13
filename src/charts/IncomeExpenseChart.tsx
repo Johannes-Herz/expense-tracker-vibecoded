@@ -45,7 +45,20 @@ export default function IncomeExpenseChart({ points }: { points: ForecastPoint[]
         options={{
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { display: true, position: 'bottom', labels: { color: theme.text, boxWidth: 12, boxHeight: 12 } },
+            // Same small round markers and text size as the other charts and the axes; datasets in their natural order.
+            legend: {
+              display: true,
+              position: 'bottom',
+              labels: {
+                color: theme.text,
+                usePointStyle: true,
+                boxWidth: 7,
+                boxHeight: 7,
+                padding: 12,
+                font: { size: 11 },
+                sort: (a, b) => a.datasetIndex! - b.datasetIndex!,
+              },
+            },
             tooltip: {
               callbacks: {
                 title: (items) => points[items[0].dataIndex].month,
