@@ -3,10 +3,12 @@ import './../charts/chartSetup'
 import CategoriesGroup from '../components/stats/CategoriesGroup'
 import HistoryGroup from '../components/stats/HistoryGroup'
 import OverviewGroup from '../components/stats/OverviewGroup'
+import StatsGroupTabs from '../components/stats/StatsGroupTabs'
 import type { StatsData } from '../components/stats/types'
 import MonthSelector from '../components/MonthSelector'
 import { db, getExpensesInRange } from '../db'
 import { useCategories, usePlanned } from '../hooks/useData'
+import { useStatsGroup } from '../hooks/useStatsGroup'
 import { addMonths, currentMonth, daysInMonth, lastMonths, monthOf, monthRange } from '../lib/dates'
 import {
   categoryBudgetForecasts,
@@ -37,6 +39,7 @@ function cumulativeByDay(expenses: Entry[], month: string, lastDay: number): (nu
 
 export default function StatsScreen({ month, onMonthChange }: Props) {
   const categories = useCategories()
+  const [group, setGroup] = useStatsGroup() // last opened group, remembered per device
 
   // One query for the last 12 months (ending with the selected month); everything is derived from it.
   const months = lastMonths(month, 12)
@@ -111,13 +114,24 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl bg-white p-2 shadow-sm dark:bg-slate-900">
-        <MonthSelector month={month} onChange={onMonthChange} />
+      {/* Month selector and group switch stay visible while scrolling; the month applies to every group. */}
+      <div className="sticky top-0 z-10 -mx-4 bg-slate-50/95 px-4 pb-1 pt-[max(0.25rem,env(safe-area-inset-top))] backdrop-blur dark:bg-slate-950/95">
+        <div className="space-y-1 rounded-2xl bg-white p-2 shadow-sm dark:bg-slate-900">
+          <MonthSelector month={month} onChange={onMonthChange} />
+          <StatsGroupTabs
+            group={group}
+            onChange={(g) => {
+              setGroup(g)
+              window.scrollTo({ top: 0 })
+            }}
+          />
+        </div>
       </div>
 
-      <OverviewGroup d={data} />
-      <CategoriesGroup d={data} />
-      <HistoryGroup d={data} />
+      {/* Only the active group is rendered, so charts of the other groups cost nothing. */}
+      {group === 'overview' && <OverviewGroup d={data} />}
+      {group === 'categories' && <CategoriesGroup d={data} />}
+      {group === 'history' && <HistoryGroup d={data} />}
     </div>
   )
 }
