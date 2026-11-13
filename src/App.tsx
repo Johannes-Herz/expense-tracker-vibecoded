@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import TabBar, { type Tab } from './components/TabBar'
+import TabBar from './components/TabBar'
 import { generateDueExpenses, getSetting, SETTING_THEME } from './db'
 import { currentMonth } from './lib/dates'
 import { useSyncSavedLanguage } from './lib/i18n'
 import { applyTheme, type Theme } from './lib/theme'
+import { useRoute } from './hooks/useRoute'
+import PlanningScreen from './screens/PlanningScreen'
 import ExpensesScreen from './screens/ExpensesScreen'
 import SettingsScreen from './screens/SettingsScreen'
 import StatsScreen from './screens/StatsScreen'
 
 export default function App() {
   useSyncSavedLanguage()
-  const [tab, setTab] = useState<Tab>('expenses')
+  const { route, navigate } = useRoute() // current tab / sub-page, kept in the URL hash and the browser history
+  const tab = route.tab
   // The selected month is shared by the Expenses and Stats tabs.
   const [month, setMonth] = useState(currentMonth())
 
@@ -32,8 +35,9 @@ export default function App() {
     <div className="mx-auto min-h-full max-w-md px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
       {tab === 'expenses' && <ExpensesScreen month={month} onMonthChange={setMonth} />}
       {tab === 'stats' && <StatsScreen month={month} onMonthChange={setMonth} />}
+      {tab === 'planning' && <PlanningScreen />}
       {tab === 'settings' && <SettingsScreen />}
-      <TabBar tab={tab} onChange={setTab} />
+      <TabBar tab={tab} onChange={(t) => navigate({ tab: t })} />
     </div>
   )
 }

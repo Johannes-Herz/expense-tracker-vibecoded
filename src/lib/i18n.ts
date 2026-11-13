@@ -16,6 +16,7 @@ const de = {
   // tabs
   tabOverview: 'Übersicht',
   tabStats: 'Statistik',
+  tabPlanning: 'Planung',
   tabSettings: 'Einstellungen',
   // common
   cancel: 'Abbrechen',
@@ -196,6 +197,7 @@ type Dict = { [K in keyof typeof de]: (typeof de)[K] extends (...a: infer A) => 
 const en: Dict = {
   tabOverview: 'Overview',
   tabStats: 'Stats',
+  tabPlanning: 'Planning',
   tabSettings: 'Settings',
   cancel: 'Cancel',
   delete: 'Delete',

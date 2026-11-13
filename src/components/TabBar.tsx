@@ -1,13 +1,13 @@
 import { useT } from '../lib/i18n'
-
-export type Tab = 'expenses' | 'stats' | 'settings'
+import type { Tab } from '../lib/route'
 
 const TABS: { id: Tab; icon: string }[] = [
   { id: 'expenses', icon: '💶' },
   { id: 'stats', icon: '📊' },
+  { id: 'planning', icon: '📅' },
   { id: 'settings', icon: '⚙️' },
 ]
-const LABEL_KEY = { expenses: 'tabOverview', stats: 'tabStats', settings: 'tabSettings' } as const
+const LABEL_KEY = { expenses: 'tabOverview', stats: 'tabStats', planning: 'tabPlanning', settings: 'tabSettings' } as const
 
 export default function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   const t = useT()
