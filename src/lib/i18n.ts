@@ -143,7 +143,6 @@ const de = {
   noExpensesMonth: 'Keine Ausgaben in diesem Monat.',
   byCategory: 'Nach Kategorie',
   cumulative: 'Kumuliert im Monat',
-  last12: 'Letzte 12 Monate',
   biggest: 'Größte Ausgaben',
   total: 'Gesamt',
   dayN: (n: string) => `Tag ${n}`,
@@ -185,6 +184,10 @@ const de = {
   trendThresholdLabel: 'Schwelle für „stabil“ (%)',
   trendThresholdHint: 'Abweichungen bis zu diesem Wert vom Durchschnitt gelten als stabil (1–50).',
   hideFromTrends: 'In Kategorie-Trends ausblenden',
+  // stats groups
+  statsOverview: 'Übersicht',
+  statsCategories: 'Kategorien',
+  statsHistory: 'Verlauf',
 }
 
 // Widened so that `en` only has to match the shape (strings / functions returning strings).
@@ -312,7 +315,6 @@ const en: Dict = {
   noExpensesMonth: 'No expenses this month.',
   byCategory: 'By category',
   cumulative: 'Cumulative in month',
-  last12: 'Last 12 months',
   biggest: 'Biggest expenses',
   total: 'Total',
   dayN: (n) => `Day ${n}`,
@@ -350,6 +352,9 @@ const en: Dict = {
   trendThresholdLabel: 'Threshold for “stable” (%)',
   trendThresholdHint: 'Deviations from the average up to this value count as stable (1–50).',
   hideFromTrends: 'Hide from category trends',
+  statsOverview: 'Overview',
+  statsCategories: 'Categories',
+  statsHistory: 'History',
 }
 
 const DICTS: Record<Lang, Dict> = { de, en }

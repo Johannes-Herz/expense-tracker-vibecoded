@@ -171,3 +171,16 @@ German (default) and English, chosen in Settings → Appearance → Language, st
 - **Options:** period selector and "Fixkosten einbeziehen" toggle (off = ignore entries created by recurring series) are remembered per device in `localStorage` (`trendAvgMonths`, `trendIncludeFixed`). The stability threshold (default 10 %, 1–50) is a setting in Settings → "Kategorie-Trends" (`settings` key `trendThresholdPct`, part of backups). Categories have an optional flag `hideFromTrends` (checkbox "In Kategorie-Trends ausblenden" in the category editor, e.g. for savings); no hard-coded category names.
 - **No schema change:** still Dexie v3 and backup version 3; the new optional category field is exported/imported with the categories, older backups simply lack it.
 - **Code:** pure logic and tests in `src/lib/trends.ts` / `trends.test.ts`; UI in `src/components/CategoryTrends.tsx`, `Sparkline.tsx`, `TrendBadge.tsx`, `TrendDetail.tsx`, `src/charts/CategoryTrendChart.tsx`.
+
+
+# Addendum: Stats tab layout (groups)
+
+Layout and grouping only; no calculation was changed.
+
+- **Header (sticky):** month selector and a segmented control with three groups. The selected month applies to all groups. The last opened group is remembered per device in `localStorage` (`statsGroup`, values `overview` | `categories` | `history`, default `overview`). Only the active group is rendered, so the charts of the other groups are not mounted.
+- **Übersicht (overview):** cards Einnahmen, Ausgaben, Saldo, Sparquote (forecast incl. planned, see the planned-payments addendum); one compact row with Ø pro Tag, Anzahl Ausgaben and Vs. Vormonat (booked expenses only); "Geplante Buchungen"; "Kumuliert im Monat" line; "Größte Ausgaben" (top 5).
+- **Kategorien:** "Kategorie-Budgets", "Kategorie-Trends", "Nach Kategorie" (doughnut and list).
+- **Verlauf (history):** "Einnahmen und Ausgaben (12 Monate)" chart and the "Gesamtsaldo (alle Monate)" card.
+- **Clean-up compared with the single long column:** the separate "Letzte 12 Monate" expense bars were removed (the same expense bars are part of the 12-month income/expense chart); the three secondary numbers share one compact row instead of three cards; the all-time total balance moved from the top to the history group.
+- **Code:** `src/screens/StatsScreen.tsx` (data for the selected month, header, group switch), `src/components/stats/` (`OverviewGroup`, `CategoriesGroup`, `HistoryGroup`, `StatsGroupTabs`, shared `Card`/`SummaryCard`/`MiniStat`, `StatsData` type), `src/hooks/useStatsGroup.ts`.
+- **Known, not changed:** "Vs. Vormonat" compares the booked expenses of the (unfinished) current month with the full previous month, so it reads negative mid-month; the category trends use a like-for-like comparison instead.
