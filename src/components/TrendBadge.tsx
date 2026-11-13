@@ -2,7 +2,7 @@ import { useT } from '../lib/i18n'
 import { badgeText, TREND_STYLE } from '../lib/trendStyle'
 import type { TrendRow } from '../lib/trends'
 
-export default function TrendBadge({ row }: { row: Pick<TrendRow, 'status' | 'pct'> }) {
+export default function TrendBadge({ row }: { row: Pick<TrendRow, 'status' | 'pct' | 'shareOfAvg'> }) {
   const t = useT()
   const small = row.status === 'insufficient'
   return (

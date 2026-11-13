@@ -12,9 +12,6 @@ import Sparkline from './Sparkline'
 import TrendBadge from './TrendBadge'
 import TrendDetail from './TrendDetail'
 
-/** "13.11." for the day-range hint of the current month. */
-const shortDate = (date: string) => `${date.slice(8, 10)}.${date.slice(5, 7)}.`
-
 interface Props {
   month: string // selected month ("YYYY-MM")
   categories: Category[]
@@ -98,13 +95,11 @@ export default function CategoryTrends({ month, categories }: Props) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{r.category.name}</span>
                   <span className="block truncate text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {r.sparkPartial
-                      ? t.trendSubToDate(formatEUR(r.currentCents), shortDate(today()), formatEUR(r.avgCents))
-                      : t.trendSub(formatEUR(r.currentCents), formatEUR(r.avgCents))}
+                    {t.trendSub(formatEUR(r.currentCents), formatEUR(r.avgCents))}
                   </span>
                 </span>
                 <Sparkline values={r.spark} highlight={trendColor(r.status)} partialLast={r.sparkPartial} className="shrink-0" />
-                <span className="flex w-[4.75rem] shrink-0 justify-end">
+                <span className="flex w-[5.5rem] shrink-0 justify-end">
                   <TrendBadge row={r} />
                 </span>
               </button>
