@@ -1,5 +1,4 @@
 import IncomeExpenseChart from '../../charts/IncomeExpenseChart'
-import MonthlyBar from '../../charts/MonthlyBar'
 import { formatEUR } from '../../lib/format'
 import { useT } from '../../lib/i18n'
 import { Card } from './shared'
@@ -14,10 +13,6 @@ export default function HistoryGroup({ d }: { d: StatsData }) {
     <>
       <Card title={t.incomeVsExpenses}>
         <IncomeExpenseChart points={d.forecastSeries} />
-      </Card>
-
-      <Card title={t.last12}>
-        <MonthlyBar months={d.months} totals={d.monthTotals} selected={d.month} />
       </Card>
 
       <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">

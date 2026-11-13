@@ -108,8 +108,6 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
     plannedNet: plannedThisMonth.reduce((s, p) => s + (p.type === 'income' ? p.amountCents : -p.amountCents), 0),
     hasPlannedThisMonth: plannedThisMonth.length > 0,
     top5: [...expenses].sort((a, b) => b.amountCents - a.amountCents).slice(0, 5),
-    months,
-    monthTotals: months.map((m) => sum(byMonth(m))),
   }
 
   return (

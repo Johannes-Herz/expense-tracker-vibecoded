@@ -1,7 +1,7 @@
 import CumulativeLine from '../../charts/CumulativeLine'
 import { formatDate, formatEUR, formatPercent } from '../../lib/format'
 import { useT } from '../../lib/i18n'
-import { Card, SummaryCard } from './shared'
+import { Card, MiniStat, SummaryCard } from './shared'
 import type { StatsData } from './types'
 
 /** "This month at a glance": key numbers, planned entries, spending course, biggest expenses. */
@@ -39,9 +39,13 @@ export default function OverviewGroup({ d }: { d: StatsData }) {
           value={rate === null ? '–' : formatPercent(rate * 100, false)}
           valueClass={rate === null ? '' : rate < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}
         />
-        <SummaryCard label={t.perDay} value={formatEUR(d.avgPerDay)} />
-        <SummaryCard label={t.countExpenses} value={String(d.expenses.length)} />
-        <SummaryCard
+      </div>
+
+      {/* Secondary numbers (booked expenses only) in one compact row */}
+      <div className="grid grid-cols-3 divide-x divide-slate-100 rounded-2xl bg-white py-3 text-center shadow-sm dark:divide-slate-800 dark:bg-slate-900">
+        <MiniStat label={t.perDay} value={formatEUR(d.avgPerDay)} />
+        <MiniStat label={t.countExpenses} value={String(d.expenses.length)} />
+        <MiniStat
           label={t.vsPrevMonth}
           value={d.change === null ? '–' : formatPercent(d.change)}
           valueClass={d.change === null ? '' : d.change > 0 ? 'text-red-500' : 'text-emerald-500'}

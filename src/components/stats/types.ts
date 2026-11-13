@@ -26,6 +26,4 @@ export interface StatsData {
   plannedNet: number // planned (income − expenses) still to come this month
   hasPlannedThisMonth: boolean
   top5: Expense[]
-  months: string[] // last 12 months
-  monthTotals: number[] // booked expenses per month
 }
