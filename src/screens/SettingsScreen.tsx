@@ -20,7 +20,7 @@ import { loadDemoData } from '../lib/demoData'
 import { exportCSV, exportJSON, importBackup, parseBackup } from '../lib/exportImport'
 import { today } from '../lib/dates'
 import { formatDate, formatEUR } from '../lib/format'
-import { LANGUAGES, useT, type Lang } from '../lib/i18n'
+import { LANGUAGES, setLanguageCache, useT, type Lang } from '../lib/i18n'
 import { nextOccurrence } from '../lib/recurrence'
 import type { Theme } from '../lib/theme'
 
@@ -97,7 +97,10 @@ export default function SettingsScreen() {
           {LANGUAGES.map((l) => (
             <button
               key={l.id}
-              onClick={() => setSetting(SETTING_LANGUAGE, l.id)}
+              onClick={() => {
+                setLanguageCache(l.id)
+                void setSetting(SETTING_LANGUAGE, l.id)
+              }}
               aria-pressed={lang === l.id}
               className={`h-10 flex-1 rounded-lg text-sm font-medium transition-colors ${
                 lang === l.id ? 'bg-white shadow-sm dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'

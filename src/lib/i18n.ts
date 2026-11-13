@@ -2,6 +2,7 @@
 // `en: Dict` makes the build fail when a translation is missing.
 // Numbers and dates keep German formatting in both languages (see format.ts); only words differ.
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useEffect, useSyncExternalStore } from 'react'
 import { getSetting, SETTING_LANGUAGE } from '../db'
 import type { Frequency } from './recurrence'
 
@@ -327,8 +328,11 @@ function readCache(): Lang {
   }
 }
 let current: Lang = readCache()
+const listeners = new Set<() => void>()
 
+/** Switch the UI language everywhere (store + localStorage cache + <html lang>) and re-render subscribers. */
 export function setLanguageCache(lang: Lang) {
+  if (lang === current) return
   current = lang
   try {
     localStorage.setItem(CACHE_KEY, lang)
@@ -336,17 +340,29 @@ export function setLanguageCache(lang: Lang) {
     /* storage unavailable: fine, the setting still works */
   }
   document.documentElement.lang = lang
+  listeners.forEach((l) => l())
 }
 if (typeof document !== 'undefined') document.documentElement.lang = current
 
 export const getLang = (): Lang => current
 
-/** Current dictionary for non-React code (e.g. error messages). */
+/** Dictionary for non-React code (e.g. error messages). */
 export const tNow = (): Dict => DICTS[current]
 
-/** Dictionary for components; re-renders when the language changes in Settings. */
+const subscribe = (l: () => void) => {
+  listeners.add(l)
+  return () => listeners.delete(l)
+}
+
+/** Dictionary for components; re-renders when the language changes. */
 export function useT(): Dict {
+  return DICTS[useSyncExternalStore(subscribe, getLang)]
+}
+
+/** Keeps the store in sync with the saved setting (used once, in App; also covers backup import). */
+export function useSyncSavedLanguage() {
   const saved = useLiveQuery(() => getSetting<Lang>(SETTING_LANGUAGE), [])
-  if (saved && saved !== current && DICTS[saved]) setLanguageCache(saved)
-  return DICTS[current]
+  useEffect(() => {
+    if (saved && DICTS[saved]) setLanguageCache(saved)
+  }, [saved])
 }
