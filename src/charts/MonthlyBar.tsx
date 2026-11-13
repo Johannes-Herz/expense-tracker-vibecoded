@@ -1,5 +1,6 @@
 import { Bar } from 'react-chartjs-2'
 import { formatMonthShort } from '../lib/format'
+import { useT } from '../lib/i18n'
 import { eurTooltip, useChartTheme } from './chartSetup'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function MonthlyBar({ months, totals, selected }: Props) {
+  const t = useT()
   const theme = useChartTheme()
   return (
     <div className="h-52">
@@ -17,7 +19,7 @@ export default function MonthlyBar({ months, totals, selected }: Props) {
           labels: months.map(formatMonthShort),
           datasets: [
             {
-              label: 'Ausgaben',
+              label: t.expenses,
               data: totals.map((c) => c / 100),
               // One hue: the selected month is strong, the others are faded.
               backgroundColor: months.map((m) => (m === selected ? '#4f46e5' : '#a5b4fc')),

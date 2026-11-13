@@ -1,4 +1,4 @@
-import { FREQUENCY_UNITS } from '../lib/format'
+import { useT } from '../lib/i18n'
 import type { Frequency } from '../lib/recurrence'
 
 export interface RecurringValue {
@@ -12,49 +12,45 @@ interface Props {
   onChange: (value: RecurringValue) => void
 }
 
-const FREQUENCIES: { id: Frequency; label: string }[] = [
-  { id: 'daily', label: 'Täglich' },
-  { id: 'weekly', label: 'Wöchentlich' },
-  { id: 'monthly', label: 'Monatlich' },
-  { id: 'yearly', label: 'Jährlich' },
-]
+const FREQUENCIES: Frequency[] = ['daily', 'weekly', 'monthly', 'yearly']
 
 const field = 'h-12 rounded-xl bg-slate-100 px-4 outline-none dark:bg-slate-800'
 
 /** Frequency, interval and end date inputs for a recurring expense. */
 export default function RecurringFields({ value, onChange }: Props) {
+  const t = useT()
   const interval = Number(value.interval)
-  const unit = FREQUENCY_UNITS[value.frequency][interval === 1 ? 0 : 1]
+  const unit = t.unitOf(value.frequency, interval !== 1)
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
         {FREQUENCIES.map((f) => (
           <button
-            key={f.id}
+            key={f}
             type="button"
-            onClick={() => onChange({ ...value, frequency: f.id })}
+            onClick={() => onChange({ ...value, frequency: f })}
             className={`h-10 rounded-lg text-xs font-medium transition-colors ${
-              value.frequency === f.id ? 'bg-white shadow-sm dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'
+              value.frequency === f ? 'bg-white shadow-sm dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'
             }`}
           >
-            {f.label}
+            {t[f]}
           </button>
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-500 dark:text-slate-400">Alle</span>
+        <span className="text-sm text-slate-500 dark:text-slate-400">{t.every}</span>
         <input
           inputMode="numeric"
           value={value.interval}
           onChange={(e) => onChange({ ...value, interval: e.target.value.replace(/\D/g, '').slice(0, 3) })}
           className={`${field} w-20 text-center`}
-          aria-label="Intervall"
+          aria-label={t.interval}
         />
         <span className="text-sm text-slate-500 dark:text-slate-400">{unit}</span>
       </div>
       <label className="block text-sm text-slate-500 dark:text-slate-400">
-        Enddatum (optional)
+        {t.endDateOptional}
         <input
           type="date"
           value={value.endDate}

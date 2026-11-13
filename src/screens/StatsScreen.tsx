@@ -11,6 +11,7 @@ import { db, getExpensesInRange, type Expense } from '../db'
 import { useCategories } from '../hooks/useData'
 import { addMonths, currentMonth, daysInMonth, lastMonths, monthOf, monthRange, today } from '../lib/dates'
 import { formatDate, formatEUR, formatPercent } from '../lib/format'
+import { useT } from '../lib/i18n'
 import { categoryBudgetStatuses, monthlySeries, savingsRate, totalBalance, totals } from '../lib/finance'
 import { occurrencesBetween } from '../lib/recurrence'
 
@@ -33,6 +34,7 @@ function cumulativeByDay(expenses: Expense[], month: string, lastDay: number): (
 }
 
 export default function StatsScreen({ month, onMonthChange }: Props) {
+  const t = useT()
   const categories = useCategories()
 
   // One query for the last 12 months (ending with the selected month); everything is derived from it.
@@ -103,42 +105,42 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <SummaryCard label="Einnahmen" value={`+${formatEUR(monthTotals.incomeCents)}`} valueClass="text-emerald-600 dark:text-emerald-400" />
-        <SummaryCard label="Ausgaben" value={formatEUR(total)} />
+        <SummaryCard label={t.incomes} value={`+${formatEUR(monthTotals.incomeCents)}`} valueClass="text-emerald-600 dark:text-emerald-400" />
+        <SummaryCard label={t.expenses} value={formatEUR(total)} />
         <SummaryCard
-          label="Saldo"
+          label={t.balance}
           value={formatEUR(monthTotals.balanceCents)}
           valueClass={monthTotals.balanceCents < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}
         />
         <SummaryCard
-          label="Sparquote"
+          label={t.savingsRate}
           value={rate === null ? '–' : formatPercent(rate * 100, false)}
           valueClass={rate === null ? '' : rate < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}
         />
-        <SummaryCard label="Ø pro Tag" value={formatEUR(avgPerDay)} />
-        <SummaryCard label="Anzahl Ausgaben" value={String(expenses.length)} />
+        <SummaryCard label={t.perDay} value={formatEUR(avgPerDay)} />
+        <SummaryCard label={t.countExpenses} value={String(expenses.length)} />
         <SummaryCard
-          label="Vs. Vormonat"
+          label={t.vsPrevMonth}
           value={change === null ? '–' : formatPercent(change)}
           valueClass={change === null ? '' : change > 0 ? 'text-red-500' : 'text-emerald-500'}
         />
       </div>
 
       <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
-        <div className="text-xs text-slate-500 dark:text-slate-400">Gesamtsaldo (alle Monate)</div>
+        <div className="text-xs text-slate-500 dark:text-slate-400">{t.totalBalance}</div>
         <div className={`mt-1 text-xl font-bold tabular-nums ${overallBalance < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
           {overallBalance > 0 ? '+' : ''}
           {formatEUR(overallBalance)}
         </div>
         <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-          Alle Einnahmen minus alle Ausgaben – nur zur Information, es wird nichts in den nächsten Monat übertragen.
+          {t.totalBalanceInfo}
         </div>
       </div>
 
-      <Card title="Kategorie-Budgets">
+      <Card title={t.categoryBudgets}>
         {budgetRows.length === 0 ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Noch keine Budgets. Lege in den Einstellungen bei einer Ausgaben-Kategorie ein Monatsbudget fest.
+            {t.noBudgetsYet}
           </p>
         ) : (
           <ul className="space-y-4">
@@ -158,12 +160,12 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
         )}
       </Card>
 
-      <Card title="Einnahmen und Ausgaben (12 Monate)">
+      <Card title={t.incomeVsExpenses}>
         <IncomeExpenseChart points={balanceSeries} />
       </Card>
 
       {upcoming.length > 0 && (
-        <Card title="Anstehende Fixkosten diesen Monat">
+        <Card title={t.upcomingFixed}>
           <div className="mb-2 text-2xl font-bold tabular-nums">{formatEUR(upcoming.reduce((t, u) => t + u.cents, 0))}</div>
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {upcoming.map((u) => (
@@ -181,24 +183,24 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
       )}
 
       {expenses.length === 0 ? (
-        <p className="py-8 text-center text-slate-500 dark:text-slate-400">Keine Ausgaben in diesem Monat.</p>
+        <p className="py-8 text-center text-slate-500 dark:text-slate-400">{t.noExpensesMonth}</p>
       ) : (
         <>
-          <Card title="Nach Kategorie">
+          <Card title={t.byCategory}>
             <CategoryDoughnut totals={categoryTotals} />
           </Card>
-          <Card title="Kumuliert im Monat">
+          <Card title={t.cumulative}>
             <CumulativeLine month={month} current={current} previous={previous} previousMonth={prevMonth} />
           </Card>
         </>
       )}
 
-      <Card title="Letzte 12 Monate">
+      <Card title={t.last12}>
         <MonthlyBar months={months} totals={months.map((m) => sum(byMonth(m)))} selected={month} />
       </Card>
 
       {top5.length > 0 && (
-        <Card title="Größte Ausgaben">
+        <Card title={t.biggest}>
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {top5.map((e) => {
               const cat = categoryMap.get(e.categoryId)

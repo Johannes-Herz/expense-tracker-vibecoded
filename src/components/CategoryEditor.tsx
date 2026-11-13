@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { addCategory, deleteCategoryIfUnused, isCategoryUsed, updateCategory, type Category, type EntryType } from '../db'
 import { centsToInput, parseAmountToCents } from '../lib/format'
+import { useT } from '../lib/i18n'
 import ConfirmDialog from './ConfirmDialog'
 
 const EMOJI_SUGGESTIONS = ['🛒', '🍽️', '🚌', '🏠', '🛍️', '💊', '🎉', '📺', '✈️', '📦', '☕', '🎁', '🐶', '👶', '📚', '💻', '🚗', '🏋️', '💇', '🎮']
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function CategoryEditor({ category, type: newType, onClose }: Props) {
+  const t = useT()
   const type = category?.type ?? newType ?? 'expense'
   const isIncome = type === 'income'
   const [name, setName] = useState(category?.name ?? '')
@@ -53,7 +55,7 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
         className="max-h-[95%] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-3xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold">{category ? 'Kategorie bearbeiten' : isIncome ? 'Neue Einnahmen-Kategorie' : 'Neue Ausgaben-Kategorie'}</h2>
+        <h2 className="mb-4 text-lg font-semibold">{category ? t.catEdit : isIncome ? t.catNewIncome : t.catNewExpense}</h2>
 
         <div className="flex gap-3">
           <input
@@ -65,7 +67,7 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
+            placeholder={t.name}
             maxLength={30}
             className="h-12 flex-1 rounded-xl bg-slate-100 px-4 outline-none dark:bg-slate-800"
           />
@@ -89,16 +91,16 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
               style={{ backgroundColor: c }}
             />
           ))}
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Eigene Farbe" className="h-9 w-9 rounded-full bg-transparent" />
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label={t.customColor} className="h-9 w-9 rounded-full bg-transparent" />
         </div>
 
         {!isIncome && (
           <div className="mt-4">
-            <label className="mb-1 block text-sm text-slate-500 dark:text-slate-400">Monatsbudget (optional)</label>
+            <label className="mb-1 block text-sm text-slate-500 dark:text-slate-400">{t.monthlyBudgetOptional}</label>
             <div className="flex items-center gap-2">
               <input
                 inputMode="decimal"
-                placeholder="Kein Budget"
+                placeholder={t.noBudget}
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
                 className="h-12 min-w-0 flex-1 rounded-xl bg-slate-100 px-4 outline-none placeholder:text-slate-400 dark:bg-slate-800"
@@ -111,7 +113,7 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
         <div className="mt-5 flex gap-3">
           {category && (
             <button onClick={askDelete} className="h-14 rounded-2xl bg-red-50 px-5 font-semibold text-red-600 active:bg-red-100 dark:bg-red-950">
-              Löschen
+              {t.delete}
             </button>
           )}
           <button
@@ -119,7 +121,7 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
             disabled={!canSave}
             className="h-14 flex-1 rounded-2xl bg-indigo-600 text-lg font-semibold text-white active:bg-indigo-700 disabled:opacity-40"
           >
-            Speichern
+            {t.save}
           </button>
         </div>
       </div>
@@ -127,14 +129,14 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
       {confirmDelete &&
         (used ? (
           <ConfirmDialog
-            title="Kategorie wird verwendet"
-            message="Es gibt noch Buchungen in dieser Kategorie. Ändere oder lösche diese zuerst."
-            confirmLabel="OK"
+            title={t.catInUseTitle}
+            message={t.catInUseMsg}
+            confirmLabel={t.ok}
             onConfirm={() => setConfirmDelete(false)}
             onCancel={() => setConfirmDelete(false)}
           />
         ) : (
-          <ConfirmDialog title="Kategorie löschen?" onConfirm={remove} onCancel={() => setConfirmDelete(false)} />
+          <ConfirmDialog title={t.catDeleteTitle} onConfirm={remove} onCancel={() => setConfirmDelete(false)} />
         ))}
     </div>
   )

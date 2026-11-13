@@ -1,5 +1,6 @@
 import type { Category, Expense } from '../db'
 import { formatDayHeading, formatEUR } from '../lib/format'
+import { useT } from '../lib/i18n'
 
 const signed = (cents: number) => (cents > 0 ? '+' : '') + formatEUR(cents)
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function ExpenseList({ expenses, categories, onSelect }: Props) {
+  const t = useT()
   // Group by day, keeping the existing (newest first) order.
   const days: { date: string; items: Expense[]; total: number }[] = []
   for (const e of expenses) {
@@ -46,11 +48,11 @@ export default function ExpenseList({ expenses, categories, onSelect }: Props) {
                       {cat?.emoji ?? '❓'}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{cat?.name ?? 'Unbekannt'}</span>
+                      <span className="block truncate font-medium">{cat?.name ?? t.unknown}</span>
                       {e.note && <span className="block truncate text-sm text-slate-500 dark:text-slate-400">{e.note}</span>}
                     </span>
                     {e.recurringId !== undefined && (
-                      <span className="text-sm text-slate-400" title="Wiederkehrend" aria-label="Wiederkehrend">
+                      <span className="text-sm text-slate-400" title={t.recurring} aria-label={t.recurring}>
                         🔁
                       </span>
                     )}

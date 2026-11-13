@@ -1,5 +1,6 @@
 import { Line } from 'react-chartjs-2'
 import { formatMonth } from '../lib/format'
+import { useT } from '../lib/i18n'
 import { useChartTheme } from './chartSetup'
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function CumulativeLine({ month, current, previous, previousMonth }: Props) {
+  const t = useT()
   const theme = useChartTheme()
   const days = Math.max(current.length, previous.length)
   const toEuro = (list: (number | null)[]) => Array.from({ length: days }, (_, i) => (list[i] == null ? null : list[i]! / 100))
@@ -49,7 +51,7 @@ export default function CumulativeLine({ month, current, previous, previousMonth
             legend: { position: 'bottom', labels: { color: theme.text, usePointStyle: true, boxWidth: 8 } },
             tooltip: {
               callbacks: {
-                title: (items) => `Tag ${items[0].label}`,
+                title: (items) => t.dayN(items[0].label),
                 label: (ctx) =>
                   `${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}`,
               },

@@ -1,6 +1,9 @@
-import type { Frequency } from './recurrence'
+import { getLang } from './i18n'
 
-// German-locale formatting and amount parsing.
+// German-locale formatting of numbers and dates (also in the English UI). Only weekday and month
+// names follow the UI language. Amount parsing is here too.
+
+const nameLocale = () => (getLang() === 'en' ? 'en-GB' : 'de-DE')
 
 const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
 
@@ -24,20 +27,20 @@ export function formatDate(date: string): string {
 /** "2026-11-12" → "Do., 12.11." (used as day heading in lists) */
 export function formatDayHeading(date: string): string {
   const [y, m, d] = date.split('-').map(Number)
-  const weekday = new Date(y, m - 1, d).toLocaleDateString('de-DE', { weekday: 'short' })
+  const weekday = new Date(y, m - 1, d).toLocaleDateString(nameLocale(), { weekday: 'short' })
   return `${weekday}, ${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.`
 }
 
 /** "2026-11" → "November 2026" */
 export function formatMonth(month: string): string {
   const [y, m] = month.split('-').map(Number)
-  return new Date(y, m - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
+  return new Date(y, m - 1, 1).toLocaleDateString(nameLocale(), { month: 'long', year: 'numeric' })
 }
 
 /** "2026-11" → "Nov." (short label for chart axes) */
 export function formatMonthShort(month: string): string {
   const [y, m] = month.split('-').map(Number)
-  return new Date(y, m - 1, 1).toLocaleDateString('de-DE', { month: 'short' })
+  return new Date(y, m - 1, 1).toLocaleDateString(nameLocale(), { month: 'short' })
 }
 
 /**
@@ -54,20 +57,6 @@ export function parseAmountToCents(input: string): number | null {
   if (!/^\d+(\.\d{1,2})?$/.test(s)) return null
   const cents = Math.round(parseFloat(s) * 100)
   return cents > 0 ? cents : null
-}
-
-/** Unit words for "every N …" (singular, plural). */
-export const FREQUENCY_UNITS: Record<Frequency, [string, string]> = {
-  daily: ['Tag', 'Tage'],
-  weekly: ['Woche', 'Wochen'],
-  monthly: ['Monat', 'Monate'],
-  yearly: ['Jahr', 'Jahre'],
-}
-
-/** ("monthly", 1) → "monatlich"; ("weekly", 2) → "alle 2 Wochen" */
-export function formatSchedule(frequency: Frequency, interval: number): string {
-  if (interval === 1) return { daily: 'täglich', weekly: 'wöchentlich', monthly: 'monatlich', yearly: 'jährlich' }[frequency]
-  return `alle ${interval} ${FREQUENCY_UNITS[frequency][1]}`
 }
 
 /** 1250 → "12,50" (for pre-filling the amount input when editing) */

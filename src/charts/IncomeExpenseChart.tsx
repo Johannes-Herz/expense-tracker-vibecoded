@@ -1,10 +1,12 @@
 import { Chart } from 'react-chartjs-2'
 import type { MonthPoint } from '../lib/finance'
 import { formatMonthShort } from '../lib/format'
+import { useT } from '../lib/i18n'
 import { eurTooltip, useChartTheme } from './chartSetup'
 
 /** Grouped bars income vs. expenses per month, with the balance (income − expenses) as a line. */
 export default function IncomeExpenseChart({ points }: { points: MonthPoint[] }) {
+  const t = useT()
   const theme = useChartTheme()
   return (
     <div className="h-60">
@@ -15,7 +17,7 @@ export default function IncomeExpenseChart({ points }: { points: MonthPoint[] })
           datasets: [
             {
               type: 'bar' as const,
-              label: 'Einnahmen',
+              label: t.incomes,
               data: points.map((p) => p.incomeCents / 100),
               backgroundColor: '#10b981',
               borderRadius: 3,
@@ -24,7 +26,7 @@ export default function IncomeExpenseChart({ points }: { points: MonthPoint[] })
             },
             {
               type: 'bar' as const,
-              label: 'Ausgaben',
+              label: t.expenses,
               data: points.map((p) => p.expenseCents / 100),
               backgroundColor: '#6366f1',
               borderRadius: 3,
@@ -33,7 +35,7 @@ export default function IncomeExpenseChart({ points }: { points: MonthPoint[] })
             },
             {
               type: 'line' as const,
-              label: 'Saldo',
+              label: t.balance,
               data: points.map((p) => p.balanceCents / 100),
               borderColor: '#f59e0b',
               backgroundColor: '#f59e0b',

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useT } from '../lib/i18n'
 
 interface Props {
   title: string
@@ -11,7 +12,8 @@ interface Props {
   onCancel: () => void
 }
 
-export default function ConfirmDialog({ title, message, children, confirmLabel = 'Löschen', requireText, onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ title, message, children, confirmLabel, requireText, onConfirm, onCancel }: Props) {
+  const t = useT()
   const [typed, setTyped] = useState('')
   const allowed = !requireText || typed.trim().toUpperCase() === requireText.toUpperCase()
 
@@ -29,7 +31,7 @@ export default function ConfirmDialog({ title, message, children, confirmLabel =
             autoFocus
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            placeholder={`Tippe „${requireText}“ zur Bestätigung`}
+            placeholder={t.typeToConfirm(requireText)}
             className="mt-3 h-12 w-full rounded-xl bg-slate-100 px-4 outline-none dark:bg-slate-800"
           />
         )}
@@ -38,14 +40,14 @@ export default function ConfirmDialog({ title, message, children, confirmLabel =
             onClick={onCancel}
             className="h-12 flex-1 rounded-xl bg-slate-100 font-medium active:bg-slate-200 dark:bg-slate-800 dark:active:bg-slate-700"
           >
-            Abbrechen
+            {t.cancel}
           </button>
           <button
             onClick={onConfirm}
             disabled={!allowed}
             className="h-12 flex-1 rounded-xl bg-red-600 font-medium text-white active:bg-red-700 disabled:opacity-40"
           >
-            {confirmLabel}
+            {confirmLabel ?? t.delete}
           </button>
         </div>
       </div>

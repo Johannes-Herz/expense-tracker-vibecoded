@@ -128,6 +128,7 @@ export async function setSetting(key: string, value: unknown) {
 }
 
 export const SETTING_THEME = 'theme' // 'system' | 'light' | 'dark'
+export const SETTING_LANGUAGE = 'language' // 'de' | 'en' (default 'de')
 
 // ---------- Expense helpers ----------
 
