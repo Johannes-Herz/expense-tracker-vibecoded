@@ -14,7 +14,7 @@ export const TREND_STYLE: Record<TrendStatus, { badge: string; bar: string }> = 
 export const trendColor = (status: TrendStatus) => TREND_STYLE[status].bar
 
 /** "▲ +29 %", "▼ −15 %", "● stabil", "▲ neu", "zu wenig Daten" */
-export function badgeText(row: Pick<TrendRow, 'status' | 'pct'>, t: ReturnType<typeof useT>): string {
+export function badgeText(row: Pick<TrendRow, 'status' | 'pct' | 'shareOfAvg'>, t: ReturnType<typeof useT>): string {
   const n = row.pct === null ? 0 : Math.round(Math.abs(row.pct))
   switch (row.status) {
     case 'up':
@@ -25,6 +25,8 @@ export function badgeText(row: Pick<TrendRow, 'status' | 'pct'>, t: ReturnType<t
       return `▲ ${t.trendNew}`
     case 'insufficient':
       return t.trendInsufficient
+    case 'progress': // unfinished month, not above a usual month yet: share of a usual month used so far
+      return `● ${t.trendShare(Math.round(row.shareOfAvg ?? 0))}`
     default:
       return `● ${t.trendStable}`
   }

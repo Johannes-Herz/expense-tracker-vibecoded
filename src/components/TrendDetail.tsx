@@ -6,6 +6,12 @@ import { trendColor } from '../lib/trendStyle'
 import { categorySeries, type TrendEntry, type TrendOptions, type TrendRow } from '../lib/trends'
 import TrendBadge from './TrendBadge'
 
+/** "+7 %" / "−15 %" / "0 %" with a real minus sign. */
+const signedPct = (pct: number) => {
+  const n = Math.round(pct)
+  return `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)} %`
+}
+
 interface Props {
   row: TrendRow & { category: { id: number; name: string; emoji: string; color: string } }
   entries: TrendEntry[]
@@ -41,6 +47,12 @@ export default function TrendDetail({ row, entries, opts, onClose }: Props) {
           </div>
           <TrendBadge row={row} />
         </div>
+
+        {row.pace && (
+          <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+            {t.trendPaceHint(signedPct(row.pace.pct), formatEUR(row.pace.avgCents))}
+          </p>
+        )}
 
         <CategoryTrendChart series={series} color={trendColor(row.status)} avgMonths={opts.avgMonths} />
       </div>
