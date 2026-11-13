@@ -90,3 +90,71 @@ export function monthlySeries(entries: Entry[], months: string[]): MonthPoint[] 
 
 /** All-time balance (income − expenses); purely informational, nothing carries over between months. */
 export const totalBalance = (entries: Entry[]): number => totals(entries).balanceCents
+
+// ---------- Forecast: booked + planned (recurring payments not yet booked) ----------
+
+export interface Forecast {
+  booked: Totals
+  planned: Totals
+  /** booked + planned: the expected picture of the whole month. */
+  forecast: Totals
+}
+
+/** Totals of real entries, of planned entries, and both added together. */
+export function forecastTotals(booked: Entry[], planned: Entry[]): Forecast {
+  const b = totals(booked)
+  const p = totals(planned)
+  return {
+    booked: b,
+    planned: p,
+    forecast: {
+      incomeCents: b.incomeCents + p.incomeCents,
+      expenseCents: b.expenseCents + p.expenseCents,
+      balanceCents: b.balanceCents + p.balanceCents,
+    },
+  }
+}
+
+export interface BudgetForecast extends BudgetStatus {
+  categoryId: number
+  bookedCents: number
+  plannedCents: number // spentCents = bookedCents + plannedCents; level/ratio are based on the sum
+}
+
+/** Like categoryBudgetStatuses, but booked and planned spending are kept apart (status uses the sum). */
+export function categoryBudgetForecasts(
+  categories: { id: number; type: EntryType; budgetCents?: number }[],
+  booked: Entry[],
+  planned: Entry[],
+): BudgetForecast[] {
+  const bookedBy = expensesByCategory(booked)
+  const plannedBy = expensesByCategory(planned)
+  return categories
+    .filter((c) => c.type === 'expense' && c.budgetCents !== undefined && c.budgetCents > 0)
+    .map((c) => {
+      const bookedCents = bookedBy.get(c.id) ?? 0
+      const plannedCents = plannedBy.get(c.id) ?? 0
+      return { categoryId: c.id, bookedCents, plannedCents, ...budgetStatus(bookedCents + plannedCents, c.budgetCents!) }
+    })
+}
+
+export interface ForecastPoint extends MonthPoint {
+  plannedIncomeCents: number // part of incomeCents that is still planned
+  plannedExpenseCents: number // part of expenseCents that is still planned
+}
+
+/** monthlySeries with planned entries added on top; history months simply have nothing planned. */
+export function monthlyForecastSeries(booked: Entry[], planned: Entry[], months: string[]): ForecastPoint[] {
+  const plannedPoints = new Map(monthlySeries(planned, months).map((p) => [p.month, p]))
+  return monthlySeries(booked, months).map((p) => {
+    const pl = plannedPoints.get(p.month)!
+    return {
+      month: p.month,
+      incomeCents: p.incomeCents + pl.incomeCents,
+      expenseCents: p.expenseCents + pl.expenseCents,
+      balanceCents: p.balanceCents + pl.balanceCents,
+      plannedIncomeCents: pl.incomeCents,
+      plannedExpenseCents: pl.expenseCents,
+    }
+  })
+}
