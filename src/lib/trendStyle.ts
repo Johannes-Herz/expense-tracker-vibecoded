@@ -8,6 +8,7 @@ export const TREND_STYLE: Record<TrendStatus, { badge: string; bar: string }> = 
   stable: { badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', bar: '#94a3b8' },
   new: { badge: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300', bar: '#f59e0b' },
   insufficient: { badge: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400', bar: '#94a3b8' },
+  progress: { badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', bar: '#94a3b8' },
 }
 
 export const trendColor = (status: TrendStatus) => TREND_STYLE[status].bar

@@ -1,13 +1,15 @@
 // Category trends: is spending in a category rising, falling or stable compared to the usual level?
 // Pure functions only (no database, no "now"): callers pass the entries and `today`.
 //
-// Reference month = the month being looked at. "Usual level" = average of the N full months before it.
-// For the *current* (unfinished) month everything is compared like-for-like: the amount up to today's
-// day versus the average of the same day range in the previous months, so mid-month never looks like a drop.
+// Reference month = the month being looked at. "Usual level" (Ø) = average of the N FULL months before it.
+// Finished months are compared as a whole. The *current* (unfinished) month is judged one-sidedly, because
+// spending only ever grows during a month: already above a usual month is a reliable "up"; anything below
+// is shown neutrally as "share of a usual month used so far" (never "falling"). The old same-days comparison
+// is kept as secondary information (`pace`).
 import type { EntryType } from '../db'
 import { addMonths, daysInMonth, monthOf } from './dates'
 
-export type TrendStatus = 'up' | 'down' | 'stable' | 'new' | 'insufficient'
+export type TrendStatus = 'up' | 'down' | 'stable' | 'new' | 'insufficient' | 'progress'
 
 /** Number of bars in the row sparkline (the reference month is the last one). */
 export const SPARK_MONTHS = 6
@@ -44,9 +46,12 @@ export interface TrendOptions {
 export interface TrendRow<C extends TrendCategory = TrendCategory> {
   category: C
   currentCents: number // reference month; month-to-date if it is the current month
-  avgCents: number // average of the N previous months (same day range if the reference month is current)
-  pct: number | null // change in % (unrounded); null for "new" and "insufficient"
-  status: TrendStatus
+  avgCents: number // Ø: average of the N full months before the reference month
+  pct: number | null // change vs. Ø in % (unrounded); null for "new" and "insufficient"
+  status: TrendStatus // "progress" = unfinished month, not (yet) above a usual month
+  shareOfAvg: number | null // "progress" only: current / Ø in % (e.g. 50 = half a usual month so far)
+  /** Current month only: the old same-days comparison (to date vs. the same days of the previous months). */
+  pace: { avgCents: number; pct: number } | null
   spark: number[] // SPARK_MONTHS values, oldest first, last = reference month
   sparkPartial: boolean // the last bar is month-to-date only
 }
@@ -89,6 +94,30 @@ export function categoryTrend(
   return { status: pct > thresholdPct ? 'up' : pct < -thresholdPct ? 'down' : 'stable', pct }
 }
 
+/**
+ * Status for the UNFINISHED month: `currentCents` is month-to-date, `avgCents` the average of full months.
+ * - not enough history → "insufficient"
+ * - average 0: spent > 0 → "new" (nothing at all in the whole average period), spent 0 → "stable" at 0 %
+ * - spent so far > average × (1 + threshold) → "up" (can only grow, so this is reliable)
+ * - otherwise "progress" with the share of a usual month used so far (never "down", the month isn't over)
+ */
+export function partialMonthTrend(
+  currentCents: number,
+  avgCents: number,
+  thresholdPct: number,
+  enoughHistory: boolean,
+): { status: TrendStatus; pct: number | null; shareOfAvg: number | null } {
+  if (!enoughHistory) return { status: 'insufficient', pct: null, shareOfAvg: null }
+  if (avgCents <= 0) {
+    return currentCents > 0
+      ? { status: 'new', pct: null, shareOfAvg: null }
+      : { status: 'stable', pct: 0, shareOfAvg: null }
+  }
+  const pct = ((currentCents - avgCents) / avgCents) * 100
+  if (pct > thresholdPct) return { status: 'up', pct, shareOfAvg: null }
+  return { status: 'progress', pct, shareOfAvg: (currentCents / avgCents) * 100 }
+}
+
 /** True if the app has data reaching back to the first month of the average window. */
 export function hasEnoughHistory(refMonth: string, avgMonths: number, firstEntryMonth?: string): boolean {
   return firstEntryMonth !== undefined && firstEntryMonth <= addMonths(refMonth, -avgMonths)
@@ -98,6 +127,10 @@ export function hasEnoughHistory(refMonth: string, avgMonths: number, firstEntry
 function relevant(entries: TrendEntry[], categoryId: number, includeFixed: boolean): TrendEntry[] {
   return entries.filter((e) => e.type === 'expense' && e.categoryId === categoryId && (includeFixed || e.recurringId === undefined))
 }
+
+/** Average of the given full months (rounded to cents). */
+const fullAverage = (own: TrendEntry[], months: string[]): number =>
+  Math.round(months.reduce((s, m) => s + sumInMonth(own, m), 0) / months.length)
 
 const rank = (s: TrendStatus) => (s === 'new' ? 0 : s === 'insufficient' ? 2 : 1)
 
@@ -120,11 +153,22 @@ export function computeTrends<C extends TrendCategory>(entries: TrendEntry[], ca
     const own = relevant(entries, category.id, includeFixed)
     if (!own.some((e) => looked.has(monthOf(e.date)))) continue // nothing in the whole window
 
-    const currentCents = sumInMonth(own, refMonth, day)
-    const avgCents = Math.round(avgWindow.reduce((s, m) => s + sumInMonth(own, m, day), 0) / avgMonths)
+    const currentCents = sumInMonth(own, refMonth, day) // month-to-date if the month is unfinished
+    const avgCents = fullAverage(own, avgWindow)
     const spark = sparkMonths.map((m, i) => sumInMonth(own, m, i === sparkMonths.length - 1 ? day : undefined))
-    const { status, pct } = categoryTrend(currentCents, avgCents, thresholdPct, enough)
-    rows.push({ category, currentCents, avgCents, pct, status, spark, sparkPartial: day !== undefined })
+    const result =
+      day === undefined
+        ? { ...categoryTrend(currentCents, avgCents, thresholdPct, enough), shareOfAvg: null }
+        : partialMonthTrend(currentCents, avgCents, thresholdPct, enough)
+
+    // Secondary info for the unfinished month: how does the spending compare with the same days of the previous months?
+    let pace: TrendRow<C>['pace'] = null
+    if (day !== undefined) {
+      const paceAvg = Math.round(avgWindow.reduce((s, m) => s + sumInMonth(own, m, day), 0) / avgMonths)
+      if (paceAvg > 0) pace = { avgCents: paceAvg, pct: ((currentCents - paceAvg) / paceAvg) * 100 }
+    }
+
+    rows.push({ category, currentCents, avgCents, ...result, spark, sparkPartial: day !== undefined, pace })
   }
 
   return rows.sort(
@@ -138,7 +182,7 @@ export function computeTrends<C extends TrendCategory>(entries: TrendEntry[], ca
 export interface CategorySeries {
   months: string[] // `count` months ending with refMonth, oldest first
   values: number[] // cents per month (the reference month is month-to-date if it is the current month)
-  avgCents: number // average of the avgMonths before refMonth, for the dashed line
+  avgCents: number // Ø: average of the avgMonths FULL months before refMonth, for the dashed line
   partialLast: boolean
 }
 
@@ -154,7 +198,7 @@ export function categorySeries(
   const own = relevant(entries, categoryId, includeFixed)
   const months = [...previousMonths(refMonth, count - 1), refMonth]
   const values = months.map((m, i) => sumInMonth(own, m, i === months.length - 1 ? day : undefined))
-  const avgCents = Math.round(previousMonths(refMonth, avgMonths).reduce((s, m) => s + sumInMonth(own, m, day), 0) / avgMonths)
+  const avgCents = fullAverage(own, previousMonths(refMonth, avgMonths))
   return { months, values, avgCents, partialLast: day !== undefined }
 }
 

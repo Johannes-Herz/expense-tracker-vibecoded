@@ -159,40 +159,96 @@ describe('computeTrends – past month (full months)', () => {
   })
 })
 
-describe('computeTrends – current month (month-to-date, like-for-like)', () => {
+describe('computeTrends – current (unfinished) month: share of a usual month', () => {
   const opts: TrendOptions = { ...base, refMonth: '2026-11', today: '2026-11-13' }
-  const entries = [
-    // Previous months: 100 € in the first 13 days and 300 € after → full months would be 400 €
+  // Previous months: 100 € in the first 13 days and 300 € after → a usual (full) month is 400 €
+  const usual = [
     exp(10000, '2026-08-05'), exp(30000, '2026-08-20'),
     exp(10000, '2026-09-05'), exp(30000, '2026-09-20'),
     exp(10000, '2026-10-05'), exp(30000, '2026-10-20'),
-    exp(11000, '2026-11-05'), // November until the 13th: 110 €
-    exp(99900, '2026-11-14'), // in the "future" of the day range: not counted yet
   ]
 
-  it('compares up to today\'s day with the same day range of the previous months', () => {
-    const [row] = computeTrends(entries, [cat(1)], opts)
-    expect(row.currentCents).toBe(11000)
-    expect(row.avgCents).toBe(10000)
-    expect(row.status).toBe('stable') // +10 % exactly
+  it('compares spending to date with the FULL-month average and shows the share used so far', () => {
+    const [row] = computeTrends([...usual, exp(11000, '2026-11-05'), exp(99900, '2026-11-14')], [cat(1)], opts)
+    expect(row.currentCents).toBe(11000) // only up to the 13th
+    expect(row.avgCents).toBe(40000) // Ø of full months
+    expect(row.status).toBe('progress') // never "down" while the month is unfinished
+    expect(row.shareOfAvg).toBeCloseTo(27.5, 5)
     expect(row.sparkPartial).toBe(true)
     expect(row.spark.at(-1)).toBe(11000)
-    expect(row.spark.at(-2)).toBe(40000) // earlier bars are full months
+    expect(row.spark.at(-2)).toBe(40000)
   })
 
-  it('would wrongly look like a big drop when compared with full months', () => {
-    const fullMonthAvg = 40000
-    expect(categoryTrend(11000, fullMonthAvg, 10, true).status).toBe('down')
+  it('a rare category (earlier months only after the 13th) is NOT "new" when it has spending this month', () => {
+    const shopping = [exp(7000, '2026-08-20', 2), exp(9000, '2026-09-25', 2), exp(8000, '2026-10-18', 2), exp(4000, '2026-11-05', 2)]
+    const [row] = computeTrends(shopping, [cat(2)], opts)
+    expect(row.avgCents).toBe(8000)
+    expect(row.status).toBe('progress')
+    expect(row.shareOfAvg).toBeCloseTo(50, 5)
+    expect(row.pace).toBeNull() // nothing in the same days of the previous months → no pace number
   })
 
-  it('caps the day for short months (today is the 31st, February has 28 days)', () => {
-    const rows = computeTrends(
+  it('is "up" only once spending to date is above a usual month by more than the threshold', () => {
+    const at = (cents: number) => computeTrends([...usual, exp(cents, '2026-11-02')], [cat(1)], opts)[0]
+    expect(at(40000).status).toBe('progress') // exactly a usual month
+    expect(at(44000).status).toBe('progress') // exactly +10 % is still not "up"
+    const up = at(44001)
+    expect(up.status).toBe('up')
+    expect(up.pct).toBeGreaterThan(10)
+    expect(at(50000).pct).toBeCloseTo(25, 5)
+    expect(at(50000).shareOfAvg).toBeNull()
+  })
+
+  it('nothing spent so far is "0 % of a usual month", not a drop', () => {
+    const [row] = computeTrends(usual, [cat(1)], opts)
+    expect(row.currentCents).toBe(0)
+    expect(row.status).toBe('progress')
+    expect(row.shareOfAvg).toBe(0)
+  })
+
+  it('"new" only when nothing was spent in the whole average period', () => {
+    const [row] = computeTrends([exp(5000, '2026-11-02')], [cat(1)], opts)
+    expect(row).toMatchObject({ status: 'new', pct: null, avgCents: 0 })
+  })
+
+  it('still reports "insufficient" without enough history', () => {
+    const [row] = computeTrends([...usual, exp(5000, '2026-11-02')], [cat(1)], { ...opts, firstEntryMonth: '2026-10' })
+    expect(row.status).toBe('insufficient')
+  })
+
+  it('keeps the old same-days comparison as "pace"', () => {
+    const [row] = computeTrends([...usual, exp(11000, '2026-11-05')], [cat(1)], opts)
+    expect(row.pace?.avgCents).toBe(10000) // average of the 1st–13th of Aug–Oct
+    expect(row.pace?.pct).toBeCloseTo(10, 5)
+  })
+
+  it('caps the day for the pace in short months (today is the 31st, February has 28 days)', () => {
+    const [row] = computeTrends(
       [exp(10000, '2027-02-28'), exp(10000, '2027-03-31')],
       [cat(1)],
-      { ...opts, refMonth: '2027-03', today: '2027-03-31', avgMonths: 3, firstEntryMonth: '2026-12' },
+      { ...opts, refMonth: '2027-03', today: '2027-03-31', firstEntryMonth: '2026-12' },
     )
-    expect(rows[0].currentCents).toBe(10000)
-    expect(rows[0].avgCents).toBe(Math.round(10000 / 3)) // Feb counted fully (28th is its last day)
+    expect(row.currentCents).toBe(10000)
+    expect(row.pace?.avgCents).toBe(Math.round(10000 / 3)) // February counted fully (28th is its last day)
+    expect(row.avgCents).toBe(Math.round(10000 / 3))
+  })
+
+  it('past months are unaffected: no pace, full-month comparison with "down"', () => {
+    const [row] = computeTrends([...usual, exp(10000, '2026-11-02')], [cat(1)], { ...opts, today: '2026-12-15' })
+    expect(row.pace).toBeNull()
+    expect(row.shareOfAvg).toBeNull()
+    expect(row.status).toBe('down')
+    expect(row.sparkPartial).toBe(false)
+  })
+
+  it('sorts rows above a usual month first, then by how far along they are', () => {
+    const list = [
+      ...usual, exp(60000, '2026-11-03'), // category 1: far above → up
+      exp(10000, '2026-08-05', 2), exp(10000, '2026-09-05', 2), exp(10000, '2026-10-05', 2), exp(5000, '2026-11-03', 2), // category 2: half → progress
+      exp(7000, '2026-11-04', 3), // category 3: new
+    ]
+    const rows = computeTrends(list, [cat(1), cat(2), cat(3)], opts)
+    expect(rows.map((r) => [r.category.id, r.status])).toEqual([[3, 'new'], [1, 'up'], [2, 'progress']])
   })
 })
 
@@ -233,5 +289,14 @@ describe('clampThreshold', () => {
     expect(clampThreshold(undefined)).toBe(10)
     expect(clampThreshold('x')).toBe(10)
     expect(clampThreshold(NaN)).toBe(10)
+  })
+})
+
+describe('categorySeries average in the current month', () => {
+  it('uses the full-month average (same as the row), not the same-days average', () => {
+    const entries = [exp(10000, '2026-09-01'), exp(20000, '2026-10-20'), exp(5000, '2026-11-02')]
+    const s = categorySeries(entries, 1, { refMonth: '2026-11', avgMonths: 3, today: '2026-11-13', includeFixed: true })
+    expect(s.avgCents).toBe(10000) // (0 + 10000 + 20000) / 3, including October's purchase on the 20th
+    expect(s.values.at(-1)).toBe(5000)
   })
 })
