@@ -1,21 +1,32 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useOverlayBack } from '../hooks/useOverlayBack'
 import { useT } from '../lib/i18n'
 
 interface Props {
   title: string
   message?: string
-  children?: ReactNode // extra content, e.g. a checkbox
+  children?: ReactNode // extra content, e.g. a checkbox or an "export first" button
   confirmLabel?: string
   /** If set, the user must type this word before the confirm button is enabled. */
   requireText?: string
+  /** If set, the confirm button only becomes active after this many seconds (shows a countdown). */
+  enableAfterSeconds?: number
   onConfirm: () => void
   onCancel: () => void
 }
 
-export default function ConfirmDialog({ title, message, children, confirmLabel, requireText, onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ title, message, children, confirmLabel, requireText, enableAfterSeconds = 0, onConfirm, onCancel }: Props) {
   const t = useT()
+  useOverlayBack(onCancel) // the back gesture cancels the dialog
   const [typed, setTyped] = useState('')
-  const allowed = !requireText || typed.trim().toUpperCase() === requireText.toUpperCase()
+  const [secondsLeft, setSecondsLeft] = useState(enableAfterSeconds)
+  const allowed = (!requireText || typed.trim().toUpperCase() === requireText.toUpperCase()) && secondsLeft === 0
+
+  useEffect(() => {
+    if (secondsLeft === 0) return
+    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [secondsLeft])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={onCancel}>
@@ -48,6 +59,7 @@ export default function ConfirmDialog({ title, message, children, confirmLabel, 
             className="h-12 flex-1 rounded-xl bg-red-600 font-medium text-white active:bg-red-700 disabled:opacity-40"
           >
             {confirmLabel ?? t.delete}
+            {secondsLeft > 0 && ` (${secondsLeft})`}
           </button>
         </div>
       </div>

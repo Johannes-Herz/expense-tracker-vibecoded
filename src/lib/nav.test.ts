@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createNav, type WindowLike } from './nav'
 
 /** A tiny fake of window/history: a list of entries, an index, and popstate on back/go. */
@@ -89,6 +89,9 @@ describe('pages', () => {
 })
 
 describe('overlays (forms, sheets, dialogs)', () => {
+  beforeEach(() => void vi.useFakeTimers())
+  afterEach(() => void vi.useRealTimers())
+
   it('the back gesture closes the open overlay and stays on the page', () => {
     const f = fakeWindow()
     const nav = createNav(f.win)
@@ -101,21 +104,24 @@ describe('overlays (forms, sheets, dialogs)', () => {
     expect(f.index()).toBe(0)
   })
 
-  it('nested overlays: back closes only the topmost one each time', () => {
+  it('nested overlays share one history entry; back closes only the topmost one each time', () => {
     const f = fakeWindow()
     const nav = createNav(f.win)
     const form = vi.fn()
     const confirm = vi.fn()
     nav.pushOverlay(form)
     nav.pushOverlay(confirm)
+    expect(f.index()).toBe(1) // one entry for both
     f.userBack()
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(form).not.toHaveBeenCalled()
+    expect(f.index()).toBe(1) // the form is still open: its entry is back
     f.userBack()
     expect(form).toHaveBeenCalledTimes(1)
+    expect(f.index()).toBe(0)
   })
 
-  it('closing via the UI removes its history entry without calling onClose or closing others', () => {
+  it('closing via the UI keeps other overlays open and does not call onClose', () => {
     const f = fakeWindow()
     const nav = createNav(f.win)
     const form = vi.fn()
@@ -123,22 +129,51 @@ describe('overlays (forms, sheets, dialogs)', () => {
     nav.pushOverlay(form)
     const t = nav.pushOverlay(confirm)
     nav.releaseOverlay(t) // e.g. "Cancel" in the dialog
+    vi.runAllTimers()
     expect(confirm).not.toHaveBeenCalled()
     expect(form).not.toHaveBeenCalled()
-    expect(f.index()).toBe(1) // only the form's entry is left
+    expect(f.index()).toBe(1)
     f.userBack()
-    expect(form).toHaveBeenCalledTimes(1) // the form is still open and back closes it
+    expect(form).toHaveBeenCalledTimes(1)
   })
 
-  it('closing everything via the UI (any order) leaves no stray entries', () => {
+  it('closing the last overlay via the UI gives the history entry back', () => {
+    const f = fakeWindow()
+    const nav = createNav(f.win)
+    const t = nav.pushOverlay(vi.fn())
+    nav.releaseOverlay(t)
+    vi.runAllTimers()
+    expect(f.index()).toBe(0)
+    nav.releaseOverlay(t) // twice is harmless
+    vi.runAllTimers()
+    expect(f.index()).toBe(0)
+  })
+
+  it('closing one overlay and opening another in the same moment keeps working (no race)', () => {
+    const f = fakeWindow()
+    const nav = createNav(f.win)
+    const first = nav.pushOverlay(vi.fn())
+    nav.releaseOverlay(first) // e.g. the import dialog is replaced by the replace-confirmation
+    const second = vi.fn()
+    nav.pushOverlay(second)
+    vi.runAllTimers()
+    expect(f.index()).toBe(1) // still one entry for the open overlay
+    f.userBack()
+    expect(second).toHaveBeenCalledTimes(1)
+    expect(f.index()).toBe(0)
+  })
+
+  it('React StrictMode style (open, close, open again at once) leaves exactly one entry', () => {
     const f = fakeWindow()
     const nav = createNav(f.win)
     const a = nav.pushOverlay(vi.fn())
-    const b = nav.pushOverlay(vi.fn())
-    nav.releaseOverlay(a) // parent first, as React unmounts parent before child
-    expect(f.index()).toBe(2) // still waiting for the child
-    nav.releaseOverlay(b)
-    expect(f.index()).toBe(0)
+    nav.releaseOverlay(a)
+    const onClose = vi.fn()
+    nav.pushOverlay(onClose)
+    vi.runAllTimers()
+    expect(f.index()).toBe(1)
+    f.userBack()
+    expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('an overlay on a sub-page: back closes it first, then goes up, and only then leaves the app', () => {
@@ -156,12 +191,15 @@ describe('overlays (forms, sheets, dialogs)', () => {
     expect(f.index()).toBe(0) // next back would leave the app
   })
 
-  it('releasing twice is harmless', () => {
+  it('after an overlay was closed by the UI, back works normally again', () => {
     const f = fakeWindow()
     const nav = createNav(f.win)
+    nav.navigate({ tab: 'settings' })
+    nav.navigate({ tab: 'settings', sub: 'data' })
     const t = nav.pushOverlay(vi.fn())
     nav.releaseOverlay(t)
-    nav.releaseOverlay(t)
-    expect(f.index()).toBe(0)
+    vi.runAllTimers()
+    f.userBack()
+    expect(nav.getRoute()).toEqual({ tab: 'settings' })
   })
 })

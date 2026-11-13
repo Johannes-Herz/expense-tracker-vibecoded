@@ -3,6 +3,11 @@
 //   - then going from a sub-page up to its tab's home,
 //   - and only then leaving the app.
 // `createNav` takes a window-like object so it can be unit-tested with a fake history.
+//
+// Overlays share ONE history entry (a "sentinel") while any of them is open: the back gesture removes
+// it and we close the topmost overlay (and add a new sentinel if more overlays are still open).
+// When the last overlay is closed by the UI, the sentinel is removed lazily (next tick), so closing one
+// dialog and opening another straight away never races with the asynchronous history traversal.
 import { buildHash, parentRoute, parseRoute, sameRoute, type Route } from './route'
 
 interface HistoryLike {
@@ -19,21 +24,20 @@ export interface WindowLike {
   addEventListener(type: 'popstate', listener: () => void): void
 }
 
-/** An open overlay (form, sheet, dialog). It owns one history entry while it is open. */
+/** An open overlay (form, sheet, dialog). */
 export interface OverlayToken {
-  id: number
   onClose: () => void
   closed: boolean
 }
 
-type EntryState = { nav: 'root' | 'page' } | { nav: 'overlay'; id: number }
+type EntryState = { nav: 'root' | 'page' | 'overlay' }
 
 export function createNav(win: WindowLike) {
   let route = parseRoute(win.location.hash)
   const listeners = new Set<() => void>()
-  const entries: OverlayToken[] = [] // overlay history entries, oldest first (closed ones wait until they can be popped)
+  const stack: OverlayToken[] = [] // open overlays, oldest first
+  let sentinel = false // is our overlay history entry on top of the history?
   let ignorePops = 0 // popstate events caused by our own history.go()
-  let nextId = 1
 
   // Mark the entry we started on (and normalize the hash).
   win.history.replaceState({ nav: 'root' } satisfies EntryState, '', buildHash(route))
@@ -41,17 +45,20 @@ export function createNav(win: WindowLike) {
   const notify = () => listeners.forEach((l) => l())
   const stateOf = () => win.history.state as EntryState | null
 
-  /** Pop history entries of overlays that were already closed and sit on top of the history. */
-  function settle() {
-    let n = 0
-    while (entries.length > 0 && entries[entries.length - 1].closed) {
-      entries.pop()
-      n++
-    }
-    if (n > 0) {
-      ignorePops++
-      win.history.go(-n)
-    }
+  function ensureSentinel() {
+    if (sentinel) return
+    win.history.pushState({ nav: 'overlay' } satisfies EntryState, '')
+    sentinel = true
+  }
+
+  function removeSentinelLater() {
+    setTimeout(() => {
+      if (sentinel && stack.length === 0) {
+        sentinel = false
+        ignorePops++
+        win.history.go(-1)
+      }
+    }, 0)
   }
 
   win.addEventListener('popstate', () => {
@@ -59,13 +66,15 @@ export function createNav(win: WindowLike) {
       ignorePops--
       return
     }
-    const top = entries[entries.length - 1]
-    if (top) {
-      // Back gesture while an overlay is open: close only the topmost one.
-      entries.pop()
-      top.closed = true
-      top.onClose()
-      settle()
+    if (sentinel) {
+      // Back gesture while overlays are open: the sentinel is gone, close only the topmost overlay.
+      sentinel = false
+      const top = stack.pop()
+      if (top) {
+        top.closed = true
+        top.onClose()
+      }
+      if (stack.length > 0) ensureSentinel()
       return
     }
     const next = parseRoute(win.location.hash)
@@ -103,19 +112,21 @@ export function createNav(win: WindowLike) {
       else navigate(parentRoute(route))
     },
 
-    /** Open an overlay: adds a history entry so the back gesture closes it. */
+    /** Open an overlay: from now on the back gesture closes it (calls `onClose`). */
     pushOverlay(onClose: () => void): OverlayToken {
-      const token: OverlayToken = { id: nextId++, onClose, closed: false }
-      entries.push(token)
-      win.history.pushState({ nav: 'overlay', id: token.id } satisfies EntryState, '')
+      const token: OverlayToken = { onClose, closed: false }
+      stack.push(token)
+      ensureSentinel()
       return token
     },
 
-    /** The overlay was closed by the UI (not by back): drop its history entry again. */
+    /** The overlay was closed by the UI (not by back). */
     releaseOverlay(token: OverlayToken) {
       if (token.closed) return
       token.closed = true
-      settle()
+      const i = stack.indexOf(token)
+      if (i >= 0) stack.splice(i, 1)
+      if (stack.length === 0) removeSentinelLater()
     },
   }
 }
