@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+export { default as Card } from '../Card'
 
 export function SummaryCard({ label, value, valueClass = '', sub }: { label: string; value: string; valueClass?: string; sub?: string }) {
   return (
@@ -17,14 +17,5 @@ export function MiniStat({ label, value, valueClass = '' }: { label: string; val
       <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">{label}</div>
       <div className={`mt-0.5 truncate text-sm font-bold tabular-nums ${valueClass}`}>{value}</div>
     </div>
-  )
-}
-
-export function Card({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
-      <h2 className="mb-3 font-semibold">{title}</h2>
-      {children}
-    </section>
   )
 }
