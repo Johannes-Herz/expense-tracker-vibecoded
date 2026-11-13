@@ -1,29 +1,38 @@
 import { useState } from 'react'
-import { addCategory, deleteCategoryIfUnused, isCategoryUsed, updateCategory, type Category } from '../db'
+import { addCategory, deleteCategoryIfUnused, isCategoryUsed, updateCategory, type Category, type EntryType } from '../db'
+import { centsToInput, parseAmountToCents } from '../lib/format'
 import ConfirmDialog from './ConfirmDialog'
 
 const EMOJI_SUGGESTIONS = ['🛒', '🍽️', '🚌', '🏠', '🛍️', '💊', '🎉', '📺', '✈️', '📦', '☕', '🎁', '🐶', '👶', '📚', '💻', '🚗', '🏋️', '💇', '🎮']
+const INCOME_EMOJIS = ['💼', '👪', '🛠️', '↩️', '💰', '🎁', '🏦', '📈', '🧾', '🎓', '🏠', '🤝', '💵', '🪙', '🛒', '💻', '🎨', '📦', '🚗', '⭐']
 const COLORS = ['#22c55e', '#f97316', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#eab308', '#06b6d4', '#14b8a6', '#64748b']
 
 interface Props {
   category?: Category // undefined = add a new one
+  type?: EntryType // type of a new category (default: expense); ignored when editing
   onClose: () => void
 }
 
-export default function CategoryEditor({ category, onClose }: Props) {
+export default function CategoryEditor({ category, type: newType, onClose }: Props) {
+  const type = category?.type ?? newType ?? 'expense'
+  const isIncome = type === 'income'
   const [name, setName] = useState(category?.name ?? '')
   const [emoji, setEmoji] = useState(category?.emoji ?? '📦')
   const [color, setColor] = useState(category?.color ?? COLORS[0])
+  const [budget, setBudget] = useState(category?.budgetCents ? centsToInput(category.budgetCents) : '')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [used, setUsed] = useState(false)
 
-  const canSave = name.trim() !== '' && emoji.trim() !== ''
+  const budgetCents = budget.trim() === '' ? undefined : parseAmountToCents(budget)
+  const budgetValid = isIncome || budget.trim() === '' || budgetCents !== null
+  const canSave = name.trim() !== '' && emoji.trim() !== '' && budgetValid
 
   async function save() {
     if (!canSave) return
-    const data = { name: name.trim(), emoji: emoji.trim(), color }
+    // An empty budget field removes the budget (undefined deletes the stored field).
+    const data = { name: name.trim(), emoji: emoji.trim(), color, budgetCents: isIncome ? undefined : (budgetCents ?? undefined) }
     if (category) await updateCategory(category.id, data)
-    else await addCategory(data)
+    else await addCategory({ ...data, type })
     onClose()
   }
 
@@ -44,7 +53,7 @@ export default function CategoryEditor({ category, onClose }: Props) {
         className="max-h-[95%] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-3xl dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold">{category ? 'Kategorie bearbeiten' : 'Neue Kategorie'}</h2>
+        <h2 className="mb-4 text-lg font-semibold">{category ? 'Kategorie bearbeiten' : isIncome ? 'Neue Einnahmen-Kategorie' : 'Neue Ausgaben-Kategorie'}</h2>
 
         <div className="flex gap-3">
           <input
@@ -63,7 +72,7 @@ export default function CategoryEditor({ category, onClose }: Props) {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {EMOJI_SUGGESTIONS.map((e) => (
+          {(isIncome ? INCOME_EMOJIS : EMOJI_SUGGESTIONS).map((e) => (
             <button key={e} onClick={() => setEmoji(e)} className="h-10 w-10 rounded-lg bg-slate-100 text-xl active:scale-90 dark:bg-slate-800">
               {e}
             </button>
@@ -82,6 +91,22 @@ export default function CategoryEditor({ category, onClose }: Props) {
           ))}
           <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Eigene Farbe" className="h-9 w-9 rounded-full bg-transparent" />
         </div>
+
+        {!isIncome && (
+          <div className="mt-4">
+            <label className="mb-1 block text-sm text-slate-500 dark:text-slate-400">Monatsbudget (optional)</label>
+            <div className="flex items-center gap-2">
+              <input
+                inputMode="decimal"
+                placeholder="Kein Budget"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                className="h-12 min-w-0 flex-1 rounded-xl bg-slate-100 px-4 outline-none placeholder:text-slate-400 dark:bg-slate-800"
+              />
+              <span className="text-slate-500">€</span>
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 flex gap-3">
           {category && (
@@ -103,7 +128,7 @@ export default function CategoryEditor({ category, onClose }: Props) {
         (used ? (
           <ConfirmDialog
             title="Kategorie wird verwendet"
-            message="Es gibt noch Ausgaben in dieser Kategorie. Ändere oder lösche diese zuerst."
+            message="Es gibt noch Buchungen in dieser Kategorie. Ändere oder lösche diese zuerst."
             confirmLabel="OK"
             onConfirm={() => setConfirmDelete(false)}
             onCancel={() => setConfirmDelete(false)}

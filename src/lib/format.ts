@@ -10,8 +10,8 @@ export function formatEUR(cents: number): string {
 }
 
 /** Percent with sign, e.g. 12.3 → "+12,3 %" */
-export function formatPercent(value: number): string {
-  const sign = value > 0 ? '+' : ''
+export function formatPercent(value: number, withPlus = true): string {
+  const sign = value > 0 && withPlus ? '+' : ''
   return `${sign}${value.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %`
 }
 

@@ -1,7 +1,7 @@
 export type Tab = 'expenses' | 'stats' | 'settings'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'expenses', label: 'Ausgaben', icon: '💶' },
+  { id: 'expenses', label: 'Übersicht', icon: '💶' },
   { id: 'stats', label: 'Statistik', icon: '📊' },
   { id: 'settings', label: 'Einstellungen', icon: '⚙️' },
 ]

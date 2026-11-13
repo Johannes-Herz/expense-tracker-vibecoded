@@ -1,9 +1,9 @@
-import { db, type Category, type Expense, type RecurringExpense, type Setting } from '../db'
+import { DEFAULT_INCOME_CATEGORIES, db, type Category, type EntryType, type Expense, type RecurringExpense, type Setting } from '../db'
 import { centsToInput, formatDate } from './format'
 
 interface Backup {
   app: 'ExpenseTracker'
-  version: 1 | 2 // 2 added `recurring`; version 1 backups still import
+  version: 1 | 2 | 3 // 2 added `recurring`, 3 added income (`type`) and category budgets; older backups still import
   exportedAt: string
   categories: Category[]
   expenses: Expense[]
@@ -23,23 +23,34 @@ function download(filename: string, content: string, mime: string) {
 const stamp = () => new Date().toISOString().slice(0, 10)
 
 /** CSV for Excel (German): ";" separator, decimal comma, UTF-8 BOM. */
-export async function exportCSV() {
-  const [expenses, categories] = await Promise.all([db.expenses.orderBy('date').toArray(), db.categories.toArray()])
+export async function buildCSV(): Promise<string> {
+  const [entries, categories] = await Promise.all([db.expenses.orderBy('date').toArray(), db.categories.toArray()])
   const names = new Map(categories.map((c) => [c.id, c.name]))
   const cell = (s: string) => `"${s.replace(/"/g, '""')}"`
   const rows = [
-    ['Datum', 'Betrag (EUR)', 'Kategorie', 'Notiz', 'Wiederkehrend'].join(';'),
-    ...expenses.map((e) =>
-      [formatDate(e.date), centsToInput(e.amountCents), cell(names.get(e.categoryId) ?? ''), cell(e.note ?? ''), e.recurringId === undefined ? 'Nein' : 'Ja'].join(';'),
+    ['Datum', 'Betrag (EUR)', 'Kategorie', 'Notiz', 'Wiederkehrend', 'Typ'].join(';'),
+    ...entries.map((e) =>
+      [
+        formatDate(e.date),
+        centsToInput(e.amountCents),
+        cell(names.get(e.categoryId) ?? ''),
+        cell(e.note ?? ''),
+        e.recurringId === undefined ? 'Nein' : 'Ja',
+        e.type === 'income' ? 'Einnahme' : 'Ausgabe',
+      ].join(';'),
     ),
   ]
-  download(`ausgaben-${stamp()}.csv`, '﻿' + rows.join('\r\n'), 'text/csv;charset=utf-8')
+  return '﻿' + rows.join('\r\n')
+}
+
+export async function exportCSV() {
+  download(`buchungen-${stamp()}.csv`, await buildCSV(), 'text/csv;charset=utf-8')
 }
 
 export async function exportJSON() {
   const backup: Backup = {
     app: 'ExpenseTracker',
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     categories: await db.categories.toArray(),
     expenses: await db.expenses.toArray(),
@@ -60,9 +71,14 @@ export function parseBackup(text: string): Backup {
   if (data.app !== 'ExpenseTracker' || !Array.isArray(data.categories) || !Array.isArray(data.expenses)) {
     throw new Error('Das ist keine ExpenseTracker-Sicherung.')
   }
-  const okCategory = (c: Category) => typeof c.id === 'number' && typeof c.name === 'string'
+  const okType = (t: unknown) => t === undefined || t === 'expense' || t === 'income' // missing = old backup
+  const okCategory = (c: Category) =>
+    typeof c.id === 'number' &&
+    typeof c.name === 'string' &&
+    okType(c.type) &&
+    (c.budgetCents === undefined || (Number.isInteger(c.budgetCents) && c.budgetCents >= 0))
   const okExpense = (e: Expense) =>
-    typeof e.amountCents === 'number' && typeof e.categoryId === 'number' && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
+    typeof e.amountCents === 'number' && typeof e.categoryId === 'number' && okType(e.type) && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
   if (!data.categories.every(okCategory) || !data.expenses.every(okExpense)) {
     throw new Error('Die Sicherung enthält ungültige Daten.')
   }
@@ -71,18 +87,27 @@ export function parseBackup(text: string): Backup {
     typeof r.id === 'number' &&
     typeof r.amountCents === 'number' &&
     typeof r.categoryId === 'number' &&
+    okType(r.type) &&
     ['daily', 'weekly', 'monthly', 'yearly'].includes(r.frequency) &&
     Number.isInteger(r.interval) &&
     r.interval >= 1 &&
     /^\d{4}-\d{2}-\d{2}$/.test(r.startDate)
   if (!recurring.every(okRecurring)) throw new Error('Die Sicherung enthält ungültige Daten.')
-  return { ...(data as Backup), recurring, settings: Array.isArray(data.settings) ? data.settings : [] }
+  // Old backups (v1/v2) have no `type`: everything in them is an expense. The old global budget setting is dropped.
+  const withType = <T extends { type?: EntryType }>(list: T[]) => list.map((x) => ({ ...x, type: x.type ?? 'expense' }))
+  return {
+    ...(data as Backup),
+    categories: withType(data.categories),
+    expenses: withType(data.expenses),
+    recurring: withType(recurring),
+    settings: (Array.isArray(data.settings) ? data.settings : []).filter((s) => s.key !== 'monthlyBudgetCents'),
+  }
 }
 
 /**
  * Restore a backup.
  * - replace: wipe everything, then load the backup 1:1.
- * - merge: keep existing data; categories are matched by name, duplicate expenses are skipped.
+ * - merge: keep existing data; categories are matched by name and type, duplicate expenses are skipped.
  * Returns how many expenses were added.
  */
 export async function importBackup(backup: Backup, mode: 'replace' | 'merge'): Promise<number> {
@@ -90,6 +115,8 @@ export async function importBackup(backup: Backup, mode: 'replace' | 'merge'): P
     if (mode === 'replace') {
       await Promise.all([db.expenses.clear(), db.recurring.clear(), db.categories.clear(), db.settings.clear()])
       await db.categories.bulkAdd(backup.categories)
+      // Backups made before income existed have no income categories: add the defaults.
+      if (!backup.categories.some((c) => c.type === 'income')) await db.categories.bulkAdd(DEFAULT_INCOME_CATEGORIES as Category[])
       await db.recurring.bulkAdd(backup.recurring)
       await db.expenses.bulkAdd(backup.expenses)
       await db.settings.bulkAdd(backup.settings)
@@ -100,7 +127,7 @@ export async function importBackup(backup: Backup, mode: 'replace' | 'merge'): P
     const existing = await db.categories.toArray()
     const idMap = new Map<number, number>()
     for (const c of backup.categories) {
-      const match = existing.find((x) => x.name.toLowerCase() === c.name.toLowerCase())
+      const match = existing.find((x) => x.type === c.type && x.name.toLowerCase() === c.name.toLowerCase())
       if (match) idMap.set(c.id, match.id)
       else {
         const { id: _oldId, ...rest } = c
@@ -110,7 +137,7 @@ export async function importBackup(backup: Backup, mode: 'replace' | 'merge'): P
 
     // merge series: reuse an identical existing series (keeping the later cursor), else add it
     const seriesKey = (r: RecurringExpense) =>
-      [r.note ?? '', r.amountCents, r.categoryId, r.frequency, r.interval, r.startDate, r.endDate ?? ''].join('|')
+      [r.type, r.note ?? '', r.amountCents, r.categoryId, r.frequency, r.interval, r.startDate, r.endDate ?? ''].join('|')
     const existingSeries = await db.recurring.toArray()
     const seriesMap = new Map<number, number>()
     for (const r of backup.recurring) {
@@ -126,8 +153,8 @@ export async function importBackup(backup: Backup, mode: 'replace' | 'merge'): P
       }
     }
 
-    const key = (e: Pick<Expense, 'date' | 'amountCents' | 'categoryId' | 'note' | 'createdAt'>) =>
-      [e.date, e.amountCents, e.categoryId, e.note ?? '', e.createdAt].join('|')
+    const key = (e: Pick<Expense, 'type' | 'date' | 'amountCents' | 'categoryId' | 'note' | 'createdAt'>) =>
+      [e.type, e.date, e.amountCents, e.categoryId, e.note ?? '', e.createdAt].join('|')
     const occKey = (e: Pick<Expense, 'recurringId' | 'occurrenceDate'>) => `${e.recurringId}|${e.occurrenceDate}`
     const all = await db.expenses.toArray()
     const known = new Set(all.map(key))

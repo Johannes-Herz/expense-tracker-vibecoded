@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import CategoryEditor from '../components/CategoryEditor'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ExpenseForm from '../components/ExpenseForm'
@@ -9,16 +9,16 @@ import {
   resetAllData,
   setRecurringPaused,
   setSetting,
-  SETTING_BUDGET,
   SETTING_THEME,
   type Category,
+  type EntryType,
   type RecurringExpense,
 } from '../db'
-import { useBudget, useCategories } from '../hooks/useData'
+import { useCategories } from '../hooks/useData'
 import { loadDemoData } from '../lib/demoData'
 import { exportCSV, exportJSON, importBackup, parseBackup } from '../lib/exportImport'
 import { today } from '../lib/dates'
-import { centsToInput, formatDate, formatEUR, formatSchedule, parseAmountToCents } from '../lib/format'
+import { formatDate, formatEUR, formatSchedule } from '../lib/format'
 import { nextOccurrence } from '../lib/recurrence'
 import type { Theme } from '../lib/theme'
 
@@ -26,27 +26,17 @@ type Backup = ReturnType<typeof parseBackup>
 
 export default function SettingsScreen() {
   const categories = useCategories()
-  const budget = useBudget()
   const theme = useLiveQuery(() => getSetting<Theme>(SETTING_THEME), []) ?? 'system'
 
-  const [budgetText, setBudgetText] = useState('')
-  const [editing, setEditing] = useState<Category | 'new' | null>(null)
+  // null = closed, Category = editing, { newType } = adding a category of that type
+  const [editing, setEditing] = useState<Category | { newType: EntryType } | null>(null)
   const series = useLiveQuery(() => db.recurring.toArray(), []) ?? []
-  // null = closed, 'new' = adding a series, RecurringExpense = editing one
-  const [editingSeries, setEditingSeries] = useState<RecurringExpense | 'new' | null>(null)
+  // null = closed, { newType } = adding a series, RecurringExpense = editing one
+  const [editingSeries, setEditingSeries] = useState<RecurringExpense | { newType: EntryType } | null>(null)
   const [pendingImport, setPendingImport] = useState<Backup | null>(null)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [message, setMessage] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
-
-  // Show the saved budget in the input once it has loaded.
-  useEffect(() => setBudgetText(budget ? centsToInput(budget) : ''), [budget])
-
-  async function saveBudget() {
-    const cents = parseAmountToCents(budgetText)
-    await setSetting(SETTING_BUDGET, cents ?? undefined)
-    setMessage(cents ? 'Budget gespeichert.' : 'Budget entfernt.')
-  }
 
   async function onFileChosen(file: File | undefined) {
     if (!file) return
@@ -62,7 +52,7 @@ export default function SettingsScreen() {
     if (!pendingImport) return
     const added = await importBackup(pendingImport, mode)
     setPendingImport(null)
-    setMessage(`Import abgeschlossen: ${added} Ausgaben ${mode === 'replace' ? 'geladen' : 'hinzugefügt'}.`)
+    setMessage(`Import abgeschlossen: ${added} Buchungen ${mode === 'replace' ? 'geladen' : 'hinzugefügt'}.`)
   }
 
   const THEMES: { id: Theme; label: string }[] = [
@@ -100,49 +90,27 @@ export default function SettingsScreen() {
         </div>
       </Section>
 
-      <Section title="Monatsbudget">
-        <div className="flex gap-2">
-          <input
-            inputMode="decimal"
-            placeholder="Kein Budget"
-            value={budgetText}
-            onChange={(e) => setBudgetText(e.target.value)}
-            className="h-12 min-w-0 flex-1 rounded-xl bg-slate-100 px-4 outline-none placeholder:text-slate-400 dark:bg-slate-800"
-          />
-          <span className="flex items-center text-slate-500">€</span>
-          <button onClick={saveBudget} className="h-12 rounded-xl bg-indigo-600 px-5 font-semibold text-white active:bg-indigo-700">
-            Speichern
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Feld leeren und speichern, um das Budget zu entfernen.</p>
+      <Section title="Ausgaben-Kategorien">
+        <CategoryList categories={categories.filter((c) => c.type === 'expense')} onSelect={setEditing} />
+        <button onClick={() => setEditing({ newType: 'expense' })} className={`${button} mt-3 text-indigo-600 dark:text-indigo-400`}>
+          + Kategorie hinzufügen
+        </button>
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+          Tippe auf eine Kategorie, um ein Monatsbudget festzulegen. Es erscheint im Tab „Statistik“.
+        </p>
       </Section>
 
-      <Section title="Kategorien">
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-          {categories.map((c) => (
-            <li key={c.id}>
-              <button onClick={() => setEditing(c)} className="flex min-h-14 w-full items-center gap-3 text-left">
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-xl"
-                  style={{ backgroundColor: `${c.color}26` }}
-                >
-                  {c.emoji}
-                </span>
-                <span className="flex-1 font-medium">{c.name}</span>
-                <span className="h-4 w-4 rounded-full" style={{ backgroundColor: c.color }} />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button onClick={() => setEditing('new')} className={`${button} mt-3 text-indigo-600 dark:text-indigo-400`}>
+      <Section title="Einnahmen-Kategorien">
+        <CategoryList categories={categories.filter((c) => c.type === 'income')} onSelect={setEditing} />
+        <button onClick={() => setEditing({ newType: 'income' })} className={`${button} mt-3 text-indigo-600 dark:text-indigo-400`}>
           + Kategorie hinzufügen
         </button>
       </Section>
 
-      <Section title="Wiederkehrende Ausgaben">
+      <Section title="Wiederkehrende Buchungen">
         {series.length === 0 ? (
           <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
-            Noch keine. Miete, Abos oder Versicherungen werden automatisch als Ausgaben angelegt.
+            Noch keine. Miete, Abos, Gehalt oder Versicherungen werden automatisch angelegt.
           </p>
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -162,7 +130,11 @@ export default function SettingsScreen() {
                         {formatSchedule(r.frequency, r.interval)} · {status}
                       </span>
                     </span>
-                    <span className="font-semibold tabular-nums">{formatEUR(r.amountCents)}</span>
+                    {r.type === 'income' ? (
+                      <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{formatEUR(r.amountCents)}</span>
+                    ) : (
+                      <span className="font-semibold tabular-nums">{formatEUR(r.amountCents)}</span>
+                    )}
                   </button>
                   <button
                     onClick={() => setRecurringPaused(r.id, !r.paused)}
@@ -177,9 +149,14 @@ export default function SettingsScreen() {
             })}
           </ul>
         )}
-        <button onClick={() => setEditingSeries('new')} className={`${button} mt-3 text-indigo-600 dark:text-indigo-400`}>
-          + Wiederkehrende Ausgabe
-        </button>
+        <div className="mt-3 space-y-2">
+          <button onClick={() => setEditingSeries({ newType: 'expense' })} className={`${button} text-indigo-600 dark:text-indigo-400`}>
+            + Wiederkehrende Ausgabe
+          </button>
+          <button onClick={() => setEditingSeries({ newType: 'income' })} className={`${button} text-emerald-600 dark:text-emerald-400`}>
+            + Wiederkehrende Einnahme
+          </button>
+        </div>
       </Section>
 
       <Section title="Daten">
@@ -196,7 +173,7 @@ export default function SettingsScreen() {
           />
           <button
             className={button}
-            onClick={async () => setMessage(`${await loadDemoData()} Demo-Ausgaben hinzugefügt.`)}
+            onClick={async () => setMessage(`${await loadDemoData()} Demo-Buchungen hinzugefügt.`)}
           >
             🎲 Demo-Daten laden
           </button>
@@ -209,12 +186,20 @@ export default function SettingsScreen() {
         </div>
       </Section>
 
-      {editing && <CategoryEditor category={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <CategoryEditor
+          key={'id' in editing ? editing.id : editing.newType}
+          category={'id' in editing ? editing : undefined}
+          type={'newType' in editing ? editing.newType : undefined}
+          onClose={() => setEditing(null)}
+        />
+      )}
 
       {editingSeries && (
         <ExpenseForm
-          series={editingSeries === 'new' ? undefined : editingSeries}
-          startRecurring={editingSeries === 'new'}
+          series={'id' in editingSeries ? editingSeries : undefined}
+          startRecurring={'newType' in editingSeries}
+          defaultType={'newType' in editingSeries ? editingSeries.newType : undefined}
           categories={categories}
           onClose={() => setEditingSeries(null)}
         />
@@ -225,7 +210,7 @@ export default function SettingsScreen() {
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold">Sicherung importieren</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Die Datei enthält {pendingImport.expenses.length} Ausgaben und {pendingImport.categories.length} Kategorien.
+              Die Datei enthält {pendingImport.expenses.length} Buchungen und {pendingImport.categories.length} Kategorien.
               Ersetzen löscht alle aktuellen Daten, Zusammenführen behält sie und überspringt Duplikate.
             </p>
             <div className="mt-5 space-y-2">
@@ -246,7 +231,7 @@ export default function SettingsScreen() {
       {confirmWipe && (
         <ConfirmDialog
           title="Alle Daten löschen?"
-          message="Alle Ausgaben, Kategorien und Einstellungen werden unwiderruflich gelöscht. Erstelle vorher eine Sicherung!"
+          message="Alle Buchungen, Kategorien und Einstellungen werden unwiderruflich gelöscht. Erstelle vorher eine Sicherung!"
           requireText="LÖSCHEN"
           confirmLabel="Alles löschen"
           onConfirm={async () => {
@@ -258,6 +243,29 @@ export default function SettingsScreen() {
         />
       )}
     </div>
+  )
+}
+
+function CategoryList({ categories, onSelect }: { categories: Category[]; onSelect: (c: Category) => void }) {
+  return (
+    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      {categories.map((c) => (
+        <li key={c.id}>
+          <button onClick={() => onSelect(c)} className="flex min-h-14 w-full items-center gap-3 text-left">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full text-xl" style={{ backgroundColor: `${c.color}26` }}>
+              {c.emoji}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{c.name}</span>
+              {c.budgetCents ? (
+                <span className="block text-xs text-slate-500 dark:text-slate-400">Budget {formatEUR(c.budgetCents)} / Monat</span>
+              ) : null}
+            </span>
+            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: c.color }} />
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 
