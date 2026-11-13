@@ -6,6 +6,7 @@ import CumulativeLine from '../charts/CumulativeLine'
 import IncomeExpenseChart from '../charts/IncomeExpenseChart'
 import MonthlyBar from '../charts/MonthlyBar'
 import BudgetBar from '../components/BudgetBar'
+import CategoryTrends from '../components/CategoryTrends'
 import MonthSelector from '../components/MonthSelector'
 import { db, getExpensesInRange, type Expense } from '../db'
 import { useCategories, usePlanned } from '../hooks/useData'
@@ -174,6 +175,8 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
           </ul>
         )}
       </Card>
+
+      <CategoryTrends month={month} categories={categories} />
 
       <Card title={t.incomeVsExpenses}>
         <IncomeExpenseChart points={forecastSeries} />
