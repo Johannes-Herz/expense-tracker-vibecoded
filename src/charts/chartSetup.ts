@@ -1,11 +1,14 @@
 import {
   ArcElement,
+  BarController,
   BarElement,
   CategoryScale,
   Chart,
+  DoughnutController,
   Filler,
   Legend,
   LinearScale,
+  LineController,
   LineElement,
   PointElement,
   Tooltip,
@@ -13,8 +16,24 @@ import {
 import { useEffect, useState } from 'react'
 import { formatEUR } from '../lib/format'
 
-// Register only what we use (keeps the bundle small).
-Chart.register(ArcElement, BarElement, CategoryScale, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip)
+// Register only what we use (keeps the bundle small). The controllers are registered explicitly: the
+// react-chartjs-2 components (<Bar>, <Line>, ...) only register theirs as a side effect, which the
+// production build drops when a component is no longer used anywhere - and the mixed bar/line chart
+// (<Chart type="bar">) then fails with '"bar" is not a registered controller'.
+Chart.register(
+  ArcElement,
+  BarController,
+  BarElement,
+  CategoryScale,
+  DoughnutController,
+  Filler,
+  Legend,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+)
 Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
 Chart.defaults.maintainAspectRatio = false
 
