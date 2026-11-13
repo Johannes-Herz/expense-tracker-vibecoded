@@ -14,6 +14,7 @@ import {
 } from '../db'
 import { today } from '../lib/dates'
 import { centsToInput, parseAmountToCents } from '../lib/format'
+import { useT } from '../lib/i18n'
 import { occurrencesBetween } from '../lib/recurrence'
 import ConfirmDialog from './ConfirmDialog'
 import RecurringFields, { type RecurringValue } from './RecurringFields'
@@ -29,11 +30,11 @@ interface Props {
 
 /** Bottom sheet to add or edit an expense or a recurring series. */
 export default function ExpenseForm({ expense, series, startRecurring, defaultType, categories, onClose }: Props) {
+  const t = useT()
   const item = series ?? expense
   // The type can only be chosen when adding; existing entries keep theirs.
   const [type, setType] = useState<EntryType>(item?.type ?? defaultType ?? 'expense')
   const isIncome = type === 'income'
-  const noun = isIncome ? 'Einnahme' : 'Ausgabe'
   const visibleCategories = categories.filter((c) => c.type === type)
   const [amount, setAmount] = useState(item ? centsToInput(item.amountCents) : '')
   const [categoryId, setCategoryId] = useState<number | undefined>(item?.categoryId)
@@ -100,12 +101,12 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
   }
 
   const title = series
-    ? `Wiederkehrende ${noun} bearbeiten`
+    ? t.formEditSeries(isIncome)
     : startRecurring
-      ? `Neue wiederkehrende ${noun}`
+      ? t.formNewSeries(isIncome)
       : expense
-        ? `${noun} bearbeiten`
-        : `Neue ${noun}`
+        ? t.formEdit(isIncome)
+        : t.formNew(isIncome)
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 sm:items-center" onClick={onClose}>
@@ -115,7 +116,7 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="h-10 w-10 rounded-full text-xl text-slate-500 active:bg-slate-100 dark:active:bg-slate-800" aria-label="Schließen">
+          <button onClick={onClose} className="h-10 w-10 rounded-full text-xl text-slate-500 active:bg-slate-100 dark:active:bg-slate-800" aria-label={t.close}>
             ✕
           </button>
         </div>
@@ -123,23 +124,23 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
         {/* Expense / income switch (only when adding) */}
         {!item && (
           <div className="mb-3 flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-            {(['expense', 'income'] as const).map((t) => (
+            {(['expense', 'income'] as const).map((ty) => (
               <button
-                key={t}
+                key={ty}
                 onClick={() => {
-                  setType(t)
+                  setType(ty)
                   setCategoryId(undefined) // categories differ per type
                 }}
-                aria-pressed={type === t}
+                aria-pressed={type === ty}
                 className={`h-10 flex-1 rounded-lg text-sm font-semibold transition-colors ${
-                  type === t
-                    ? t === 'income'
+                  type === ty
+                    ? ty === 'income'
                       ? 'bg-emerald-600 text-white shadow-sm'
                       : 'bg-white shadow-sm dark:bg-slate-600'
                     : 'text-slate-500 dark:text-slate-400'
                 }`}
               >
-                {t === 'income' ? 'Einnahme' : 'Ausgabe'}
+                {ty === 'income' ? t.income : t.expense}
               </button>
             ))}
           </div>
@@ -183,7 +184,7 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
         {/* Date + note */}
         <div className="mt-4 space-y-3">
           <label className="block text-sm text-slate-500 dark:text-slate-400">
-            {isSeriesForm && <span className="mb-1 block">Startdatum (erste Ausführung)</span>}
+            {isSeriesForm && <span className="mb-1 block">{t.startDate}</span>}
             <input
               type="date"
               value={date}
@@ -194,7 +195,7 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
           <input
             type="text"
             maxLength={80}
-            placeholder={isSeriesForm ? 'Name, z. B. Miete' : 'Notiz (optional)'}
+            placeholder={isSeriesForm ? t.seriesNamePlaceholder : t.notePlaceholder}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className="h-12 w-full rounded-xl bg-slate-100 px-4 outline-none placeholder:text-slate-400 dark:bg-slate-800"
@@ -204,7 +205,7 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
         {/* Recurring */}
         {expense?.recurringId !== undefined && (
           <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-            🔁 Teil einer wiederkehrenden Buchung. Änderungen gelten nur für diese Buchung.
+            {t.partOfRecurring}
           </p>
         )}
         {!expense && (
@@ -217,14 +218,14 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
                   onChange={(e) => setRecurring(e.target.checked)}
                   className="h-5 w-5 accent-indigo-600"
                 />
-                <span className="font-medium">🔁 Wiederkehrend</span>
+                <span className="font-medium">{t.recurringCheckbox}</span>
               </label>
             )}
             {recurring && (
               <div className="mt-2 space-y-3 rounded-2xl border border-slate-200 p-3 dark:border-slate-700">
                 <RecurringFields value={rec} onChange={setRec} />
                 {!recurringValid && (
-                  <p className="text-sm text-red-500">Intervall mindestens 1; Enddatum nicht vor dem Startdatum.</p>
+                  <p className="text-sm text-red-500">{t.recurringInvalid}</p>
                 )}
                 {!series && date < today() && (
                   <label className="flex items-start gap-3">
@@ -235,18 +236,16 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
                       className="mt-0.5 h-5 w-5 accent-indigo-600"
                     />
                     <span className="text-sm">
-                      Vergangene Ausführungen anlegen
+                      {t.createPast}
                       <span className="block text-slate-500 dark:text-slate-400">
-                        {backfill
-                          ? `${pastCount} Buchungen werden angelegt.`
-                          : 'Es werden nur heutige und künftige Buchungen angelegt.'}
+                        {backfill ? t.createPastCount(pastCount) : t.createPastNone}
                       </span>
                     </span>
                   </label>
                 )}
                 {series && (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Änderungen gelten nur für künftige Ausführungen. Bereits angelegte Buchungen bleiben unverändert.
+                    {t.seriesChangeNote}
                   </p>
                 )}
               </div>
@@ -260,7 +259,7 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
               onClick={() => setConfirmDelete(true)}
               className="h-14 rounded-2xl bg-red-50 px-5 font-semibold text-red-600 active:bg-red-100 dark:bg-red-950 dark:active:bg-red-900"
             >
-              Löschen
+              {t.delete}
             </button>
           )}
           <button
@@ -268,15 +267,15 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
             disabled={!canSave}
             className={`h-14 flex-1 rounded-2xl text-lg font-semibold text-white transition-colors disabled:opacity-40 ${isIncome ? 'bg-emerald-600 active:bg-emerald-700' : 'bg-indigo-600 active:bg-indigo-700'}`}
           >
-            Speichern
+            {t.save}
           </button>
         </div>
       </div>
 
       {confirmDelete && (
         <ConfirmDialog
-          title={series ? `Wiederkehrende ${noun} löschen?` : `${noun} löschen?`}
-          message={series ? 'Es werden keine weiteren Buchungen mehr angelegt.' : 'Das kann nicht rückgängig gemacht werden.'}
+          title={series ? t.deleteSeriesTitle(isIncome) : t.deleteEntryTitle(isIncome)}
+          message={series ? t.deleteSeriesMsg : t.deleteEntryMsg}
           onConfirm={remove}
           onCancel={() => setConfirmDelete(false)}
         >
@@ -288,7 +287,7 @@ export default function ExpenseForm({ expense, series, startRecurring, defaultTy
                 onChange={(e) => setAlsoDeleteExpenses(e.target.checked)}
                 className="mt-0.5 h-5 w-5 accent-red-600"
               />
-              Auch alle bereits angelegten Buchungen dieser Serie löschen
+              {t.alsoDeleteGenerated}
             </label>
           )}
         </ConfirmDialog>

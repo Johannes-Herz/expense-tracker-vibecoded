@@ -20,8 +20,8 @@ export default defineConfig(({ command }) => {
         registerType: 'autoUpdate', // new versions install silently in the background
         includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
         manifest: {
-          name: 'ExpenseTracker',
-          short_name: 'ExpenseTracker',
+          name: 'Expense Tracker',
+          short_name: 'Expense Tracker',
           description: 'Persönlicher Ausgaben-Tracker – alle Daten bleiben auf dem Gerät.',
           lang: 'de',
           start_url: base,

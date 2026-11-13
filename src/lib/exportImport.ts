@@ -1,5 +1,6 @@
 import { DEFAULT_INCOME_CATEGORIES, db, type Category, type EntryType, type Expense, type RecurringExpense, type Setting } from '../db'
 import { centsToInput, formatDate } from './format'
+import { tNow } from './i18n'
 
 interface Backup {
   app: 'ExpenseTracker'
@@ -66,10 +67,10 @@ export function parseBackup(text: string): Backup {
   try {
     data = JSON.parse(text)
   } catch {
-    throw new Error('Die Datei ist kein gültiges JSON.')
+    throw new Error(tNow().errInvalidJson)
   }
   if (data.app !== 'ExpenseTracker' || !Array.isArray(data.categories) || !Array.isArray(data.expenses)) {
-    throw new Error('Das ist keine ExpenseTracker-Sicherung.')
+    throw new Error(tNow().errNotBackup)
   }
   const okType = (t: unknown) => t === undefined || t === 'expense' || t === 'income' // missing = old backup
   const okCategory = (c: Category) =>
@@ -80,7 +81,7 @@ export function parseBackup(text: string): Backup {
   const okExpense = (e: Expense) =>
     typeof e.amountCents === 'number' && typeof e.categoryId === 'number' && okType(e.type) && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
   if (!data.categories.every(okCategory) || !data.expenses.every(okExpense)) {
-    throw new Error('Die Sicherung enthält ungültige Daten.')
+    throw new Error(tNow().errInvalidData)
   }
   const recurring = Array.isArray(data.recurring) ? data.recurring : []
   const okRecurring = (r: RecurringExpense) =>
@@ -92,7 +93,7 @@ export function parseBackup(text: string): Backup {
     Number.isInteger(r.interval) &&
     r.interval >= 1 &&
     /^\d{4}-\d{2}-\d{2}$/.test(r.startDate)
-  if (!recurring.every(okRecurring)) throw new Error('Die Sicherung enthält ungültige Daten.')
+  if (!recurring.every(okRecurring)) throw new Error(tNow().errInvalidData)
   // Old backups (v1/v2) have no `type`: everything in them is an expense. The old global budget setting is dropped.
   const withType = <T extends { type?: EntryType }>(list: T[]) => list.map((x) => ({ ...x, type: x.type ?? 'expense' }))
   return {

@@ -8,7 +8,7 @@ First, make a plan. Once I approve the plan, start by saving this entire message
 - Storage: IndexedDB via Dexie.js. All data stays on the device: no backend, no login.
 - Charts: Chart.js with react-chartjs-2.
 - PWA: vite-plugin-pwa (manifest, service worker, offline support, app icon).
-- App display name: "ExpenseTracker".
+- App display name: "Expense Tracker".
 - I'm on Windows, using PowerShell.
 
 ## Git rules
@@ -140,3 +140,23 @@ Monthly salary (recurring, 2.400 €), occasional money from family, side income
 - Home: "Verfügbar" (income − expenses), Einnahmen and Ausgaben, and a progress bar of the income already spent (amber above 80 %, red when over). Without income a hint is shown.
 - Settings: separate Ausgaben- and Einnahmen-Kategorien (expense categories have an optional monthly budget); "Wiederkehrende Buchungen" with buttons for recurring expenses and income. The old "Monatsbudget" section is gone.
 - Stats: cards Einnahmen, Ausgaben, Saldo, Sparquote, Ø pro Tag, Anzahl Ausgaben, Vs. Vormonat; Gesamtsaldo (all months); "Kategorie-Budgets"; "Einnahmen und Ausgaben (12 Monate)" chart (bars + balance line). Doughnut, cumulative line, monthly bars, top 5 and upcoming fixed costs count expenses only.
+
+
+# Addendum: Planned recurring payments, display name, languages
+
+## Display name
+The app is called "Expense Tracker" everywhere the user sees it (manifest `name`/`short_name`, HTML title, README, SPEC, error messages). **Unchanged on purpose:** the backup field `app: "ExpenseTracker"`, the Dexie database name `ExpenseTracker`, the Vite base path and the manifest `start_url`/`scope`, so URL, stored data and old backups keep working.
+
+## Planned recurring payments (forecast)
+- Recurring entries are only booked once their date arrives. To show the full month, the app additionally computes **planned** occurrences: recurring expenses/income that are due after today but not booked yet. Horizon: the **current and the next month** (constant `PLANNING_MONTHS_AHEAD = 1` in `src/lib/planned.ts`; not configurable). Past months and months beyond the horizon show nothing planned.
+- **Computed on the fly, never stored** (`plannedOccurrences` in `src/lib/planned.ts`, pure and unit-tested; hook `usePlanned` in `src/hooks/useData.ts`). So editing, pausing or deleting a series updates the planned entries immediately, no schema change was needed (still Dexie v3, backup version 3), and planned entries can never appear in CSV/JSON exports.
+- **Rules:** paused series plan nothing; end date is inclusive; a series starting in the future is planned from its start date; the 31st / 29 Feb clamp like real occurrences; occurrences on or before the series' cursor (`generatedThrough`) or today are never planned (so a deleted booked occurrence is not resurrected). Booked entries only get dates up to today and planned ones only after today, so nothing is counted twice; occurrences that already exist as real entries are additionally dropped. When the day arrives, `generateDueExpenses` books it exactly once as before.
+- **Forecast = booked + planned** (`forecastTotals`, `categoryBudgetForecasts`, `monthlyForecastSeries` in `src/lib/finance.ts`).
+  - Forecast is the main number in: home header (Available), income/expenses rows, the income bar; Stats cards (income, expenses, balance, savings rate, each with "booked + planned"); category budgets (solid booked bar + lighter planned segment, status colour from the sum); cumulative line (solid booked until today, dashed forecast to month end; the next month is fully dashed); income vs. expenses chart (lighter stacked planned segment, balance line = forecast).
+  - Booked only: average per day, number of expenses, change vs. last month, category doughnut, "last 12 months" bars, top 5, total balance (with one extra line "by month end incl. planned").
+- **List:** planned entries appear on their date, dimmed with a dashed border and a "planned" label. They cannot be edited as normal entries; tapping one opens the recurring series form. The old "upcoming fixed costs" card was replaced by a "Planned entries" card.
+- **Export/import:** unchanged. Version 3 (and older) backups import as before. The new `language` setting is part of the `settings` array.
+
+## Languages
+German (default) and English, chosen in Settings → Appearance → Language, stored in the `settings` table (key `language`) and cached in `localStorage` to avoid a flash of the wrong language. Dictionaries and `useT()` in `src/lib/i18n.ts` (the build fails when a key is missing in one language). Numbers and dates keep German formatting in both languages (`12,50 €`, `12.11.2026`); only weekday/month names follow the language. Not translated: category names and notes (user data), CSV column headers and values (kept for compatibility).
+

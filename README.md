@@ -1,4 +1,4 @@
-# ExpenseTracker
+# Expense Tracker
 
 A personal expense tracker as an installable PWA (made for Android/Chrome). All data stays on your device in IndexedDB – no backend, no login. Works offline after the first load.
 
@@ -11,6 +11,8 @@ A personal expense tracker as an installable PWA (made for Android/Chrome). All 
 - Optional **monthly budget per expense category** (Settings), shown in the Stats tab (green / amber above 80 % / red when over).
 - Stats: income, expenses, balance, savings rate, income vs. expenses for 12 months, category and spending charts (expenses only), total balance.
 - CSV export (with a type column) and JSON backup (older backups still import).
+- **Planned recurring payments:** for the current and the next month, recurring expenses and income that are due but not booked yet are shown as *planned* (home screen, list, Stats, category budgets, charts). The forecast is the main number, booked-only values are shown next to it. Planned entries are calculated on the fly, never stored, and are not part of exports.
+- **German / English** UI, switchable in Settings (numbers and dates stay in German format).
 
 Full requirements: see [SPEC.md](SPEC.md).
 

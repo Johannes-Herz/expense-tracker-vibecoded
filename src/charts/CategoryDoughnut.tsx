@@ -1,6 +1,7 @@
 import { Doughnut } from 'react-chartjs-2'
 import type { Category } from '../db'
 import { formatEUR } from '../lib/format'
+import { useT } from '../lib/i18n'
 import { eurTooltip, useChartTheme } from './chartSetup'
 
 export interface CategoryTotal {
@@ -10,6 +11,7 @@ export interface CategoryTotal {
 
 /** Doughnut of spending per category, with a legend list below (sorted by amount). */
 export default function CategoryDoughnut({ totals }: { totals: CategoryTotal[] }) {
+  const t = useT()
   const theme = useChartTheme()
   const sum = totals.reduce((s, t) => s + t.cents, 0)
 
@@ -32,7 +34,7 @@ export default function CategoryDoughnut({ totals }: { totals: CategoryTotal[] }
         />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
           <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Gesamt</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{t.total}</div>
             <div className="text-lg font-bold tabular-nums">{formatEUR(sum)}</div>
           </div>
         </div>
