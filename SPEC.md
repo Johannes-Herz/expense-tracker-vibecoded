@@ -184,3 +184,25 @@ Layout and grouping only; no calculation was changed.
 - **Clean-up compared with the single long column:** the separate "Letzte 12 Monate" expense bars were removed (the same expense bars are part of the 12-month income/expense chart); the three secondary numbers share one compact row instead of three cards; the all-time total balance moved from the top to the history group.
 - **Code:** `src/screens/StatsScreen.tsx` (data for the selected month, header, group switch), `src/components/stats/` (`OverviewGroup`, `CategoriesGroup`, `HistoryGroup`, `StatsGroupTabs`, shared `Card`/`SummaryCard`/`MiniStat`, `StatsData` type), `src/hooks/useStatsGroup.ts`.
 - **Known, not changed:** "Vs. Vormonat" compares the booked expenses of the (unfinished) current month with the full previous month, so it reads negative mid-month; the category trends use a like-for-like comparison instead.
+
+
+# Addendum: Navigation, Planung tab and Settings structure
+
+Structure/navigation only; data, calculations and the backup format are unchanged.
+
+## Tabs
+Übersicht | Statistik | **Planung** | Einstellungen (4 tabs).
+- **Planung:** header with a segmented control **Wiederkehrend | Budgets** (last part remembered per device in `localStorage` key `planningView`). *Wiederkehrend* is the list of recurring series (edit, pause/resume, add recurring expense/income). *Budgets* lists the expense categories with their monthly budget and those without; tapping a row opens the normal category editor (single place to edit a budget). The Stats → Kategorien budgets card has a "Verwalten ›" link that opens Planung → Budgets.
+- **Einstellungen:** start page with Darstellung (theme) and Sprache, the trend threshold ("Schwelle für „stabil“"), and rows to the sub-pages **Kategorien** (segmented Ausgaben | Einnahmen; list, add) and **Daten & Backup**.
+- **Daten & Backup:** card Sicherung (JSON export, CSV export, JSON import); a collapsed section **Erweitert** with demo data (with a warning that it is added to real data) and the red **Gefahrenzone** card with "Alle Daten löschen".
+- Messages (import finished, demo loaded, data deleted, errors) appear as a toast above the tab bar.
+
+## Dangerous actions
+- Import dialog: "Zusammenführen" is the only primary button; "Alle Daten ersetzen …" is a small red action that opens a second confirmation stating how many current entries will be deleted and requiring the word **ERSETZEN** (English UI: REPLACE).
+- Delete all: typed confirmation (LÖSCHEN / DELETE), an "Erst Sicherung exportieren" button inside the dialog, and the final button only enables after 3 seconds.
+
+## Navigation and the Android back gesture
+- The current page is part of the URL hash (`#/expenses`, `#/stats`, `#/planning`, `#/settings`, `#/settings/categories`, `#/settings/data`), so GitHub Pages needs no server setup and a reload reopens the same page. The base path and storage are unchanged. Pure parsing in `src/lib/route.ts`.
+- Switching tabs replaces the history entry; opening a settings sub-page adds one. The on-screen "‹" behaves like the back gesture (or goes to the parent page when the sub-page was opened directly).
+- Open forms, sheets and dialogs (entry/series form, category editor, trend detail, confirmations, import dialog) are **overlays**: while any is open the back gesture closes the topmost one first (`useOverlayBack`). Overlays share a single history entry that is added when the first opens and removed lazily when the last is closed by the UI, which avoids races with the asynchronous history. Logic and tests (fake history): `src/lib/nav.ts`, `nav.test.ts`.
+- Back from a tab's start page leaves the app as before.

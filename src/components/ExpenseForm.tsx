@@ -12,6 +12,7 @@ import {
   type Expense,
   type RecurringExpense,
 } from '../db'
+import { useOverlayBack } from '../hooks/useOverlayBack'
 import { today } from '../lib/dates'
 import { centsToInput, parseAmountToCents } from '../lib/format'
 import { useT } from '../lib/i18n'
@@ -31,6 +32,7 @@ interface Props {
 /** Bottom sheet to add or edit an expense or a recurring series. */
 export default function ExpenseForm({ expense, series, startRecurring, defaultType, categories, onClose }: Props) {
   const t = useT()
+  useOverlayBack(onClose) // the back gesture closes the form
   const item = series ?? expense
   // The type can only be chosen when adding; existing entries keep theirs.
   const [type, setType] = useState<EntryType>(item?.type ?? defaultType ?? 'expense')

@@ -1,4 +1,6 @@
 import CategoryDoughnut from '../../charts/CategoryDoughnut'
+import { setPlanningView } from '../../hooks/usePlanningView'
+import { useRoute } from '../../hooks/useRoute'
 import { useT } from '../../lib/i18n'
 import BudgetBar from '../BudgetBar'
 import CategoryTrends from '../CategoryTrends'
@@ -8,6 +10,7 @@ import type { StatsData } from './types'
 /** "Where does the money go?": budgets, trends, split by category. */
 export default function CategoriesGroup({ d }: { d: StatsData }) {
   const t = useT()
+  const { navigate } = useRoute()
   return (
     <>
       <Card title={t.categoryBudgets}>
@@ -29,6 +32,15 @@ export default function CategoriesGroup({ d }: { d: StatsData }) {
             })}
           </ul>
         )}
+        <button
+          onClick={() => {
+            setPlanningView('budgets') // jump straight to the budgets part of the Planung tab
+            navigate({ tab: 'planning' })
+          }}
+          className="mt-3 flex h-11 w-full items-center justify-end text-sm font-medium text-indigo-600 dark:text-indigo-400"
+        >
+          {t.manageBudgets}
+        </button>
       </Card>
 
       <CategoryTrends month={d.month} categories={d.categories} />

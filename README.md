@@ -8,11 +8,12 @@ A personal expense tracker as an installable PWA (made for Android/Chrome). All 
 
 - Expenses **and income**, one-off or recurring (daily/weekly/monthly/yearly), each with their own editable categories.
 - The home screen shows, for the selected month, income, expenses and what is **available** (income − expenses) with a progress bar. Every month starts fresh.
-- Optional **monthly budget per expense category** (Settings), shown in the Stats tab (green / amber above 80 % / red when over).
+- Optional **monthly budget per expense category** (Planung → Budgets, or in the category editor), shown in the Stats tab (green / amber above 80 % / red when over).
 - Stats: income, expenses, balance, savings rate, income vs. expenses for 12 months, category and spending charts (expenses only), total balance.
 - CSV export (with a type column) and JSON backup (older backups still import).
 - **Planned recurring payments:** for the current and the next month, recurring expenses and income that are due but not booked yet are shown as *planned* (home screen, list, Stats, category budgets, charts). The forecast is the main number, booked-only values are shown next to it. Planned entries are calculated on the fly, never stored, and are not part of exports.
 - **Kategorie-Trends** (Stats tab): per expense category, is spending rising, falling or stable compared to the average of the last 3/6/12 months? Sparkline, badge (▲ / ▼ / ● stabil) and a 12-month detail chart per category; the stability threshold is adjustable in Settings.
+- **Four tabs:** Übersicht, Statistik, **Planung** (recurring payments and budgets) and Einstellungen (appearance/language, categories, data & backup). Settings has sub-pages; the **Android back gesture** closes open forms/sheets/dialogs first, then goes up from a sub-page, and only then leaves the app. Risky actions (replace import, delete all) sit behind a confirmation and an "Erweitert" section.
 - **Stats tab in three groups** (switch at the top, last group remembered): Übersicht (key numbers, planned entries, spending course, biggest expenses), Kategorien (budgets, trends, split by category), Verlauf (12-month income vs. expenses, total balance). The selected month applies to all groups.
 - **German / English** UI, switchable in Settings (numbers and dates stay in German format).
 
@@ -73,7 +74,7 @@ New versions are downloaded in the background and activate the next time you ful
 
 ## Back up your data
 
-Data is stored only on the device. Use **Settings → Sicherung (JSON) exportieren** regularly; clearing Chrome's site data or uninstalling the app deletes the database. Restore with **Sicherung importieren** (replace or merge).
+Data is stored only on the device. Use **Einstellungen → Daten & Backup → Sicherung (JSON) exportieren** regularly; clearing Chrome's site data or uninstalling the app deletes the database. Restore with **Sicherung importieren** (replace or merge).
 
 ## Project structure
 
@@ -83,7 +84,7 @@ src/
   lib/                  formatting (de-DE), dates, recurrence, finance calculations, export/import, demo data, theme
   hooks/useData.ts      live queries (categories, month entries)
   components/           tab bar, month selector, expense list/form, dialogs, ...
-  screens/              Expenses, Stats, Settings
+  screens/              Expenses, Stats, Planning, Settings (+ settings/ sub-pages)
   charts/               Doughnut, monthly bar, cumulative line, income vs. expenses
 scripts/generate-icons.mjs   renders the PNG app icons into public/icons
 ```
