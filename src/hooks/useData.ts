@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getExpensesInRange, type Category } from '../db'
+import { db, getExpensesInRange, getSetting, SETTING_TREND_THRESHOLD, type Category } from '../db'
 import { addMonths, currentMonth, monthRange, today } from '../lib/dates'
+import { clampThreshold } from '../lib/trends'
 import { bookedKey, plannedForMonth, plannedOccurrences, PLANNING_MONTHS_AHEAD, type PlannedEntry } from '../lib/planned'
 
 /** All categories, expense and income (empty array while loading). Filter by `type` where needed. */
@@ -39,4 +40,10 @@ export function usePlanned(month: string): PlannedEntry[] | undefined {
     const booked = new Set(future.filter((e) => e.recurringId !== undefined).map((e) => bookedKey(e.recurringId!, e.occurrenceDate!)))
     return plannedForMonth(plannedOccurrences(series, now, PLANNING_MONTHS_AHEAD, booked), month)
   }, [month])
+}
+
+/** Stability threshold for the category trends in % (Settings), default 10, always between 1 and 50. */
+export function useTrendThreshold(): number {
+  const saved = useLiveQuery(() => getSetting<number>(SETTING_TREND_THRESHOLD), [])
+  return clampThreshold(saved)
 }

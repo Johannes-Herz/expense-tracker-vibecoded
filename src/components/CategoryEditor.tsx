@@ -22,6 +22,7 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
   const [emoji, setEmoji] = useState(category?.emoji ?? '📦')
   const [color, setColor] = useState(category?.color ?? COLORS[0])
   const [budget, setBudget] = useState(category?.budgetCents ? centsToInput(category.budgetCents) : '')
+  const [hideFromTrends, setHideFromTrends] = useState(category?.hideFromTrends ?? false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [used, setUsed] = useState(false)
 
@@ -32,7 +33,9 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
   async function save() {
     if (!canSave) return
     // An empty budget field removes the budget (undefined deletes the stored field).
-    const data = { name: name.trim(), emoji: emoji.trim(), color, budgetCents: isIncome ? undefined : (budgetCents ?? undefined) }
+    const data = { name: name.trim(), emoji: emoji.trim(), color, budgetCents: isIncome ? undefined : (budgetCents ?? undefined),
+      hideFromTrends: !isIncome && hideFromTrends ? true : undefined, // undefined removes the stored field
+    }
     if (category) await updateCategory(category.id, data)
     else await addCategory({ ...data, type })
     onClose()
@@ -108,6 +111,18 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
               <span className="text-slate-500">€</span>
             </div>
           </div>
+        )}
+
+        {!isIncome && (
+          <label className="mt-4 flex min-h-12 items-center gap-3">
+            <input
+              type="checkbox"
+              checked={hideFromTrends}
+              onChange={(e) => setHideFromTrends(e.target.checked)}
+              className="h-5 w-5 accent-indigo-600"
+            />
+            <span className="text-sm">{t.hideFromTrends}</span>
+          </label>
         )}
 
         <div className="mt-5 flex gap-3">

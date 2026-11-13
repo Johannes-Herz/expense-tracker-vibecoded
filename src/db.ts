@@ -12,6 +12,7 @@ export interface Category {
   emoji: string
   color: string // hex, e.g. "#22c55e"
   budgetCents?: number // optional monthly budget, expense categories only
+  hideFromTrends?: boolean // expense categories only: leave out of the Stats "category trends" (e.g. savings)
 }
 
 // An "Expense" row is either an expense or an income (see `type`). Amounts are always positive.
@@ -129,6 +130,7 @@ export async function setSetting(key: string, value: unknown) {
 
 export const SETTING_THEME = 'theme' // 'system' | 'light' | 'dark'
 export const SETTING_LANGUAGE = 'language' // 'de' | 'en' (default 'de')
+export const SETTING_TREND_THRESHOLD = 'trendThresholdPct' // number, % that still counts as "stable" (default 10)
 
 // ---------- Expense helpers ----------
 
