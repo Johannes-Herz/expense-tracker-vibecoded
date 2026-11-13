@@ -11,11 +11,12 @@ import {
   setSetting,
   SETTING_LANGUAGE,
   SETTING_THEME,
+  SETTING_TREND_THRESHOLD,
   type Category,
   type EntryType,
   type RecurringExpense,
 } from '../db'
-import { useCategories } from '../hooks/useData'
+import { useCategories, useTrendThreshold } from '../hooks/useData'
 import { loadDemoData } from '../lib/demoData'
 import { exportCSV, exportJSON, importBackup, parseBackup } from '../lib/exportImport'
 import { today } from '../lib/dates'
@@ -23,6 +24,7 @@ import { formatDate, formatEUR } from '../lib/format'
 import { LANGUAGES, setLanguageCache, useT, type Lang } from '../lib/i18n'
 import { nextOccurrence } from '../lib/recurrence'
 import type { Theme } from '../lib/theme'
+import { clampThreshold } from '../lib/trends'
 
 type Backup = ReturnType<typeof parseBackup>
 
@@ -30,6 +32,7 @@ export default function SettingsScreen() {
   const t = useT()
   const categories = useCategories()
   const theme = useLiveQuery(() => getSetting<Theme>(SETTING_THEME), []) ?? 'system'
+  const trendThreshold = useTrendThreshold()
   const lang = useLiveQuery(() => getSetting<Lang>(SETTING_LANGUAGE), []) ?? 'de'
 
   // null = closed, Category = editing, { newType } = adding a category of that type
@@ -125,6 +128,23 @@ export default function SettingsScreen() {
         <button onClick={() => setEditing({ newType: 'income' })} className={`${button} mt-3 text-indigo-600 dark:text-indigo-400`}>
           {t.addCategory}
         </button>
+      </Section>
+
+      <Section title={t.trendSettingsTitle}>
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm">{t.trendThresholdLabel}</span>
+          <input
+            key={trendThreshold} // re-created after saving so the field shows the clamped value
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={50}
+            defaultValue={trendThreshold}
+            onBlur={(e) => setSetting(SETTING_TREND_THRESHOLD, clampThreshold(Math.round(Number(e.target.value))))}
+            className="h-12 w-24 rounded-xl bg-slate-100 px-3 text-center outline-none dark:bg-slate-800"
+          />
+        </label>
+        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{t.trendThresholdHint}</p>
       </Section>
 
       <Section title={t.recurringEntries}>

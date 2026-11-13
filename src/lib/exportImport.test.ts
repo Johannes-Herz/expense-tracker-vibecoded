@@ -127,3 +127,16 @@ describe('income in backups and CSV', () => {
     expect(lines[2].endsWith(';Einnahme')).toBe(true)
   })
 })
+
+describe('category trend flag in backups', () => {
+  it('hideFromTrends survives a replace import, and old backups without it still import', async () => {
+    const id = (await db.categories.add({ type: 'expense', name: 'Sparen', emoji: '💰', color: '#000', hideFromTrends: true } as never)) as number
+    const backup = await snapshot()
+    await importBackup(backup, 'replace')
+    expect((await db.categories.get(id))?.hideFromTrends).toBe(true)
+
+    const old = parseBackup(JSON.stringify({ app: 'ExpenseTracker', version: 3, categories: [{ id: 1, name: 'A', type: 'expense' }], expenses: [], recurring: [], settings: [] }))
+    await importBackup(old, 'replace')
+    expect((await db.categories.toArray())[0].hideFromTrends).toBeUndefined()
+  })
+})
