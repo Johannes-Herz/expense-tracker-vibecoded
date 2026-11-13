@@ -67,6 +67,10 @@ export function plannedOccurrences(
   return result.sort((a, b) => a.date.localeCompare(b.date) || a.seriesId - b.seriesId)
 }
 
+/** True if planned entries are not shown for this "YYYY-MM" month (it is beyond the planning window). */
+export const isBeyondPlanningHorizon = (month: string, today: string, monthsAhead: number = PLANNING_MONTHS_AHEAD): boolean =>
+  month > monthOf(planningEnd(today, monthsAhead))
+
 /** The planned entries that fall into a "YYYY-MM" month. */
 export const plannedForMonth = (planned: PlannedEntry[], month: string): PlannedEntry[] =>
   planned.filter((p) => monthOf(p.date) === month)

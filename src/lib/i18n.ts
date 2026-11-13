@@ -147,6 +147,20 @@ const de = {
   biggest: 'Größte Ausgaben',
   total: 'Gesamt',
   dayN: (n: string) => `Tag ${n}`,
+  // planned (recurring entries not booked yet)
+  booked: 'gebucht',
+  planned: 'geplant',
+  forecast: 'Prognose',
+  availableForecast: 'Verfügbar (Prognose)',
+  bookedSoFar: 'Bisher gebucht',
+  // "794,38 € gebucht + 445,00 € geplant = 1.239,38 €"
+  bookedPlanned: (booked: string, planned: string, total: string, minus = false) =>
+    `${booked} gebucht ${minus ? '−' : '+'} ${planned} geplant = ${total}`,
+  budgetOfPlanned: (spent: string, planned: string, budget: string) => `${spent} gebucht + ${planned} geplant von ${budget}`,
+  plannedHorizonHint: 'Geplante Buchungen werden nur für den aktuellen und den nächsten Monat angezeigt.',
+  plannedEntry: 'Geplante wiederkehrende Buchung – tippen, um die Serie zu öffnen',
+  plannedCard: 'Geplant in diesem Monat',
+  plannedNote: 'Wird am Fälligkeitstag automatisch gebucht.',
 }
 
 // Widened so that `en` only has to match the shape (strings / functions returning strings).
@@ -279,6 +293,18 @@ const en: Dict = {
   biggest: 'Biggest expenses',
   total: 'Total',
   dayN: (n) => `Day ${n}`,
+  booked: 'booked',
+  planned: 'planned',
+  forecast: 'Forecast',
+  availableForecast: 'Available (forecast)',
+  bookedSoFar: 'Booked so far',
+  bookedPlanned: (booked, planned, total, minus = false) =>
+    `${booked} booked ${minus ? '−' : '+'} ${planned} planned = ${total}`,
+  budgetOfPlanned: (spent, planned, budget) => `${spent} booked + ${planned} planned of ${budget}`,
+  plannedHorizonHint: 'Planned entries are only shown for the current and the next month.',
+  plannedEntry: 'Planned recurring entry – tap to open the series',
+  plannedCard: 'Planned this month',
+  plannedNote: 'Booked automatically on the due date.',
 }
 
 const DICTS: Record<Lang, Dict> = { de, en }
