@@ -127,7 +127,6 @@ export async function setSetting(key: string, value: unknown) {
   await db.settings.put({ key, value })
 }
 
-export const SETTING_BUDGET = OLD_SETTING_BUDGET // TODO: removed together with the old budget UI
 export const SETTING_THEME = 'theme' // 'system' | 'light' | 'dark'
 
 // ---------- Expense helpers ----------

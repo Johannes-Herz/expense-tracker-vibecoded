@@ -1,8 +1,10 @@
 import type { Category, Expense } from '../db'
 import { formatDayHeading, formatEUR } from '../lib/format'
 
+const signed = (cents: number) => (cents > 0 ? '+' : '') + formatEUR(cents)
+
 interface Props {
-  expenses: Expense[] // already sorted newest first
+  expenses: Expense[] // expenses and income, already sorted newest first
   categories: Map<number, Category>
   onSelect: (expense: Expense) => void
 }
@@ -17,7 +19,7 @@ export default function ExpenseList({ expenses, categories, onSelect }: Props) {
       days.push(day)
     }
     day.items.push(e)
-    day.total += e.amountCents
+    day.total += e.type === 'income' ? e.amountCents : -e.amountCents // net of the day
   }
 
   return (
@@ -26,7 +28,7 @@ export default function ExpenseList({ expenses, categories, onSelect }: Props) {
         <section key={day.date}>
           <div className="mb-1.5 flex justify-between px-1 text-sm font-medium text-slate-500 dark:text-slate-400">
             <span>{formatDayHeading(day.date)}</span>
-            <span>{formatEUR(day.total)}</span>
+            <span>{signed(day.total)}</span>
           </div>
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl bg-white shadow-sm dark:divide-slate-800 dark:bg-slate-900">
             {day.items.map((e) => {
@@ -52,7 +54,11 @@ export default function ExpenseList({ expenses, categories, onSelect }: Props) {
                         🔁
                       </span>
                     )}
-                    <span className="font-semibold tabular-nums">{formatEUR(e.amountCents)}</span>
+                    {e.type === 'income' ? (
+                      <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{formatEUR(e.amountCents)}</span>
+                    ) : (
+                      <span className="font-semibold tabular-nums">{formatEUR(e.amountCents)}</span>
+                    )}
                   </button>
                 </li>
               )

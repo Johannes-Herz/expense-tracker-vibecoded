@@ -1,16 +1,21 @@
+import { budgetStatus } from '../lib/finance'
 import { formatEUR } from '../lib/format'
 
+const COLORS = { ok: 'bg-emerald-500', warn: 'bg-amber-500', over: 'bg-red-500' }
+
+/**
+ * Progress bar "spent of limit". Used for the month's income (limit = income) and for category budgets.
+ * Green up to 80 %, amber above 80 %, red when over.
+ */
 export default function BudgetBar({ spentCents, budgetCents }: { spentCents: number; budgetCents: number }) {
-  const ratio = spentCents / budgetCents
-  const over = ratio > 1
-  const color = over ? 'bg-red-500' : ratio > 0.8 ? 'bg-amber-500' : 'bg-emerald-500'
-  const remaining = budgetCents - spentCents
+  const { ratio, level, remainingCents } = budgetStatus(spentCents, budgetCents)
+  const over = level === 'over'
 
   return (
     <div>
       <div className="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${color}`}
+          className={`h-full rounded-full transition-all duration-500 ${COLORS[level]}`}
           style={{ width: `${Math.min(ratio, 1) * 100}%` }}
         />
       </div>
@@ -19,7 +24,7 @@ export default function BudgetBar({ spentCents, budgetCents }: { spentCents: num
           {formatEUR(spentCents)} von {formatEUR(budgetCents)}
         </span>
         <span className={over ? 'font-semibold text-red-500' : ''}>
-          {over ? `${formatEUR(-remaining)} drüber` : `${formatEUR(remaining)} übrig`}
+          {over ? `${formatEUR(-remainingCents)} drüber` : `${formatEUR(remainingCents)} übrig`}
         </span>
       </div>
     </div>
