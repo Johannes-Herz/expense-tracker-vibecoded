@@ -223,3 +223,15 @@ describe('categorySeries', () => {
     expect(s.partialLast).toBe(true)
   })
 })
+
+describe('clampThreshold', () => {
+  it('keeps valid values, clamps to 1–50 and falls back to 10', async () => {
+    const { clampThreshold } = await import('./trends')
+    expect(clampThreshold(15)).toBe(15)
+    expect(clampThreshold(0)).toBe(1)
+    expect(clampThreshold(500)).toBe(50)
+    expect(clampThreshold(undefined)).toBe(10)
+    expect(clampThreshold('x')).toBe(10)
+    expect(clampThreshold(NaN)).toBe(10)
+  })
+})

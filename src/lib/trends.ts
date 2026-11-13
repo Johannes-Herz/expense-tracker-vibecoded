@@ -157,3 +157,9 @@ export function categorySeries(
   const avgCents = Math.round(previousMonths(refMonth, avgMonths).reduce((s, m) => s + sumInMonth(own, m, day), 0) / avgMonths)
   return { months, values, avgCents, partialLast: day !== undefined }
 }
+
+/** A stored threshold made safe: a number between 1 and 50, default 10. */
+export function clampThreshold(value: unknown): number {
+  const n = typeof value === 'number' && Number.isFinite(value) ? value : DEFAULT_THRESHOLD_PCT
+  return Math.min(50, Math.max(1, n))
+}
