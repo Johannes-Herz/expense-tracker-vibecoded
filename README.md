@@ -1,4 +1,4 @@
-# ExpenseTracker
+# Expense Tracker
 
 A personal expense tracker as an installable PWA (made for Android/Chrome). All data stays on your device in IndexedDB – no backend, no login. Works offline after the first load.
 

@@ -8,7 +8,7 @@ First, make a plan. Once I approve the plan, start by saving this entire message
 - Storage: IndexedDB via Dexie.js. All data stays on the device: no backend, no login.
 - Charts: Chart.js with react-chartjs-2.
 - PWA: vite-plugin-pwa (manifest, service worker, offline support, app icon).
-- App display name: "ExpenseTracker".
+- App display name: "Expense Tracker".
 - I'm on Windows, using PowerShell.
 
 ## Git rules

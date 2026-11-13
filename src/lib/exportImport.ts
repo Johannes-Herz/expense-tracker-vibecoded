@@ -69,7 +69,7 @@ export function parseBackup(text: string): Backup {
     throw new Error('Die Datei ist kein gültiges JSON.')
   }
   if (data.app !== 'ExpenseTracker' || !Array.isArray(data.categories) || !Array.isArray(data.expenses)) {
-    throw new Error('Das ist keine ExpenseTracker-Sicherung.')
+    throw new Error('Das ist keine Expense-Tracker-Sicherung.')
   }
   const okType = (t: unknown) => t === undefined || t === 'expense' || t === 'income' // missing = old backup
   const okCategory = (c: Category) =>
