@@ -111,7 +111,7 @@ Bottom tab navigation with 3 tabs:
 
 # Addendum: Income and category budgets
 
-(German UI text, like the rest of the app. Steps 1–4 below are done; the UI follows after review.)
+(German UI text, like the rest of the app.)
 
 ## Behaviour
 - Besides expenses the app tracks **income** (salary, family, side income, refunds, other). Income can be one-off or recurring with the same frequency options as recurring expenses; the same generator creates the entries.
@@ -135,5 +135,8 @@ Bottom tab navigation with 3 tabs:
 ## Demo data
 Monthly salary (recurring, 2.400 €), occasional money from family, side income and refunds, and budgets for Eating out (150 €), Shopping (100 €) and Leisure (80 €).
 
-## Interim state (until the UI step)
-Existing screens show **expenses only** (income and income categories are hidden), so totals and charts are not mixed up. The old Settings budget field still exists but does nothing useful; it is replaced in the UI step.
+## UI (done)
+- Add/edit form has an Ausgabe / Einnahme switch (only when adding); the category grid shows the categories of the chosen type. Income is green with a "+" in the list; day totals are net.
+- Home: "Verfügbar" (income − expenses), Einnahmen and Ausgaben, and a progress bar of the income already spent (amber above 80 %, red when over). Without income a hint is shown.
+- Settings: separate Ausgaben- and Einnahmen-Kategorien (expense categories have an optional monthly budget); "Wiederkehrende Buchungen" with buttons for recurring expenses and income. The old "Monatsbudget" section is gone.
+- Stats: cards Einnahmen, Ausgaben, Saldo, Sparquote, Ø pro Tag, Anzahl Ausgaben, Vs. Vormonat; Gesamtsaldo (all months); "Kategorie-Budgets"; "Einnahmen und Ausgaben (12 Monate)" chart (bars + balance line). Doughnut, cumulative line, monthly bars, top 5 and upcoming fixed costs count expenses only.

@@ -4,6 +4,14 @@ A personal expense tracker as an installable PWA (made for Android/Chrome). All 
 
 **Stack:** Vite · React · TypeScript · Tailwind CSS · Dexie (IndexedDB) · Chart.js · vite-plugin-pwa
 
+## Features
+
+- Expenses **and income**, one-off or recurring (daily/weekly/monthly/yearly), each with their own editable categories.
+- The home screen shows, for the selected month, income, expenses and what is **available** (income − expenses) with a progress bar. Every month starts fresh.
+- Optional **monthly budget per expense category** (Settings), shown in the Stats tab (green / amber above 80 % / red when over).
+- Stats: income, expenses, balance, savings rate, income vs. expenses for 12 months, category and spending charts (expenses only), total balance.
+- CSV export (with a type column) and JSON backup (older backups still import).
+
 Full requirements: see [SPEC.md](SPEC.md).
 
 ## Run locally
@@ -67,11 +75,11 @@ Data is stored only on the device. Use **Settings → Sicherung (JSON) exportier
 
 ```
 src/
-  db.ts                 Dexie schema, default categories, DB helpers
-  lib/                  formatting (de-DE), date helpers, export/import, demo data, theme
-  hooks/useData.ts      live queries (categories, month expenses, budget)
+  db.ts                 Dexie schema (v3), default categories, DB helpers
+  lib/                  formatting (de-DE), dates, recurrence, finance calculations, export/import, demo data, theme
+  hooks/useData.ts      live queries (categories, month entries)
   components/           tab bar, month selector, expense list/form, dialogs, ...
   screens/              Expenses, Stats, Settings
-  charts/               Doughnut, monthly bar, cumulative line
+  charts/               Doughnut, monthly bar, cumulative line, income vs. expenses
 scripts/generate-icons.mjs   renders the PNG app icons into public/icons
 ```

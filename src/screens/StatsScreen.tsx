@@ -3,12 +3,15 @@ import type { ReactNode } from 'react'
 import './../charts/chartSetup'
 import CategoryDoughnut from '../charts/CategoryDoughnut'
 import CumulativeLine from '../charts/CumulativeLine'
+import IncomeExpenseChart from '../charts/IncomeExpenseChart'
 import MonthlyBar from '../charts/MonthlyBar'
+import BudgetBar from '../components/BudgetBar'
 import MonthSelector from '../components/MonthSelector'
 import { db, getExpensesInRange, type Expense } from '../db'
 import { useCategories } from '../hooks/useData'
 import { addMonths, currentMonth, daysInMonth, lastMonths, monthOf, monthRange, today } from '../lib/dates'
 import { formatDate, formatEUR, formatPercent } from '../lib/format'
+import { categoryBudgetStatuses, monthlySeries, savingsRate, totalBalance, totals } from '../lib/finance'
 import { occurrencesBetween } from '../lib/recurrence'
 
 interface Props {
@@ -34,13 +37,21 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
 
   // One query for the last 12 months (ending with the selected month); everything is derived from it.
   const months = lastMonths(month, 12)
-  const all = useLiveQuery(
-    () => getExpensesInRange(monthRange(months[0]).start, monthRange(month).end).then((l) => l.filter((e) => e.type === 'expense')),
-    [month],
-  )
+  const everything = useLiveQuery(() => getExpensesInRange(monthRange(months[0]).start, monthRange(month).end), [month])
   const series = useLiveQuery(() => db.recurring.filter((r) => r.type === 'expense').toArray(), [])
-  if (!all || !series) return null
+  const overallBalance = useLiveQuery(async () => totalBalance(await db.expenses.toArray()), []) // all time, informational
+  if (!everything || !series || overallBalance === undefined) return null
 
+  // Income and expenses of the selected month (summary cards, savings rate, category budgets)
+  const monthEntries = everything.filter((e) => monthOf(e.date) === month)
+  const monthTotals = totals(monthEntries)
+  const rate = savingsRate(monthTotals)
+  const balanceSeries = monthlySeries(everything, months)
+  const budgetRows = categoryBudgetStatuses(categories, monthEntries)
+  const categoryMap = new Map(categories.map((c) => [c.id, c]))
+
+  // All charts and lists below count expenses only.
+  const all = everything.filter((e) => e.type === 'expense')
   const byMonth = (m: string) => all.filter((e) => monthOf(e.date) === m)
   const expenses = byMonth(month)
   const prevMonth = addMonths(month, -1)
@@ -84,7 +95,6 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
     : []
 
   const top5 = [...expenses].sort((a, b) => b.amountCents - a.amountCents).slice(0, 5)
-  const categoryMap = new Map(categories.map((c) => [c.id, c]))
 
   return (
     <div className="space-y-4">
@@ -93,7 +103,18 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <SummaryCard label="Gesamt" value={formatEUR(total)} />
+        <SummaryCard label="Einnahmen" value={`+${formatEUR(monthTotals.incomeCents)}`} valueClass="text-emerald-600 dark:text-emerald-400" />
+        <SummaryCard label="Ausgaben" value={formatEUR(total)} />
+        <SummaryCard
+          label="Saldo"
+          value={formatEUR(monthTotals.balanceCents)}
+          valueClass={monthTotals.balanceCents < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}
+        />
+        <SummaryCard
+          label="Sparquote"
+          value={rate === null ? '–' : formatPercent(rate * 100, false)}
+          valueClass={rate === null ? '' : rate < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}
+        />
         <SummaryCard label="Ø pro Tag" value={formatEUR(avgPerDay)} />
         <SummaryCard label="Anzahl Ausgaben" value={String(expenses.length)} />
         <SummaryCard
@@ -102,6 +123,44 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
           valueClass={change === null ? '' : change > 0 ? 'text-red-500' : 'text-emerald-500'}
         />
       </div>
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
+        <div className="text-xs text-slate-500 dark:text-slate-400">Gesamtsaldo (alle Monate)</div>
+        <div className={`mt-1 text-xl font-bold tabular-nums ${overallBalance < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+          {overallBalance > 0 ? '+' : ''}
+          {formatEUR(overallBalance)}
+        </div>
+        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          Alle Einnahmen minus alle Ausgaben – nur zur Information, es wird nichts in den nächsten Monat übertragen.
+        </div>
+      </div>
+
+      <Card title="Kategorie-Budgets">
+        {budgetRows.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Noch keine Budgets. Lege in den Einstellungen bei einer Ausgaben-Kategorie ein Monatsbudget fest.
+          </p>
+        ) : (
+          <ul className="space-y-4">
+            {budgetRows.map((b) => {
+              const cat = categoryMap.get(b.categoryId)
+              return (
+                <li key={b.categoryId}>
+                  <div className="mb-1.5 flex items-center gap-2 font-medium">
+                    <span>{cat?.emoji}</span>
+                    <span className="truncate">{cat?.name}</span>
+                  </div>
+                  <BudgetBar spentCents={b.spentCents} budgetCents={b.budgetCents} />
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Card>
+
+      <Card title="Einnahmen und Ausgaben (12 Monate)">
+        <IncomeExpenseChart points={balanceSeries} />
+      </Card>
 
       {upcoming.length > 0 && (
         <Card title="Anstehende Fixkosten diesen Monat">
