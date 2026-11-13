@@ -65,7 +65,7 @@ export default function CumulativeLine({ month, current, previous, previousMonth
         options={{
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'bottom', labels: { color: theme.text, usePointStyle: true, boxWidth: 8 } },
+            legend: { position: 'bottom', labels: { color: theme.text, usePointStyle: true, boxWidth: 7, boxHeight: 7, padding: 12, font: { size: 11 } } },
             tooltip: {
               callbacks: {
                 title: (items) => t.dayN(items[0].label),

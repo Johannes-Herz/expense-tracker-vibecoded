@@ -56,7 +56,7 @@ export function useChartTheme() {
   }
 }
 
-/** Shared tooltip option: shows values as "12,50 €". */
+/** Tooltip text for a dataset whose values are in CENTS (e.g. the doughnut): "Name: 12,50 €". */
 export const eurTooltip = {
   callbacks: {
     label: (ctx: { dataset: { label?: string }; parsed: number | { y: number | null } }) => {
@@ -65,4 +65,12 @@ export const eurTooltip = {
       return `${label}${formatEUR(value)}`
     },
   },
+}
+
+/**
+ * Tooltip text for a dataset whose values are already in EUROS (charts that plot cents / 100):
+ * "Name: 418,00 €". Do not use `eurTooltip` for these: it expects cents and would divide by 100 again.
+ */
+export function euroValueLabel(ctx: { dataset: { label?: string }; parsed: { y: number | null } }): string {
+  return eurTooltip.callbacks.label({ dataset: ctx.dataset, parsed: Math.round((ctx.parsed.y ?? 0) * 100) })
 }

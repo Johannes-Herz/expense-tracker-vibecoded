@@ -1,8 +1,8 @@
 import { Chart } from 'react-chartjs-2'
 import type { ForecastPoint } from '../lib/finance'
-import { formatMonthShort } from '../lib/format'
+import { formatMonth, formatMonthShort } from '../lib/format'
 import { useT } from '../lib/i18n'
-import { eurTooltip, useChartTheme } from './chartSetup'
+import { euroValueLabel, useChartTheme } from './chartSetup'
 
 /**
  * Grouped bars income vs. expenses per month, with the balance (income − expenses) as a line.
@@ -61,8 +61,8 @@ export default function IncomeExpenseChart({ points }: { points: ForecastPoint[]
             },
             tooltip: {
               callbacks: {
-                title: (items) => points[items[0].dataIndex].month,
-                label: (ctx) => eurTooltip.callbacks.label({ dataset: ctx.dataset, parsed: ctx.parsed.y ?? 0 }),
+                title: (items) => formatMonth(points[items[0].dataIndex].month),
+                label: euroValueLabel,
               },
             },
           },

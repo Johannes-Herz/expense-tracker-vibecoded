@@ -2,7 +2,7 @@ import { Line } from 'react-chartjs-2'
 import { formatMonth, formatMonthShort } from '../lib/format'
 import { useT } from '../lib/i18n'
 import type { CategorySeries } from '../lib/trends'
-import { eurTooltip, useChartTheme } from './chartSetup'
+import { euroValueLabel, useChartTheme } from './chartSetup'
 
 interface Props {
   series: CategorySeries
@@ -54,12 +54,12 @@ export default function CategoryTrendChart({ series, color, avgMonths }: Props) 
         options={{
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'bottom', labels: { color: theme.text, usePointStyle: true, boxWidth: 8 } },
+            legend: { position: 'bottom', labels: { color: theme.text, usePointStyle: true, boxWidth: 7, boxHeight: 7, padding: 12, font: { size: 11 } } },
             tooltip: {
               callbacks: {
                 title: (items) =>
                   formatMonth(months[items[0].dataIndex]) + (partialLast && items[0].dataIndex === last ? ` (${t.trendPartialMonth})` : ''),
-                label: (ctx) => eurTooltip.callbacks.label({ dataset: ctx.dataset, parsed: ctx.parsed.y ?? 0 }),
+                label: euroValueLabel,
               },
             },
           },
