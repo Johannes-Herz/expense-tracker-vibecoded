@@ -13,6 +13,7 @@ A personal expense tracker as an installable PWA (made for Android/Chrome). All 
 - CSV export (with a type column) and JSON backup (older backups still import).
 - **Planned recurring payments:** for the current and the next month, recurring expenses and income that are due but not booked yet are shown as *planned* (home screen, list, Stats, category budgets, charts). The forecast is the main number, booked-only values are shown next to it. Planned entries are calculated on the fly, never stored, and are not part of exports.
 - **Kategorie-Trends** (Stats tab): per expense category, is spending rising, falling or stable compared to the average of the last 3/6/12 months? Sparkline, badge (▲ / ▼ / ● stabil) and a 12-month detail chart per category; the stability threshold is adjustable in Settings.
+- **Stats tab in three groups** (switch at the top, last group remembered): Übersicht (key numbers, planned entries, spending course, biggest expenses), Kategorien (budgets, trends, split by category), Verlauf (12-month income vs. expenses, total balance). The selected month applies to all groups.
 - **German / English** UI, switchable in Settings (numbers and dates stay in German format).
 
 Full requirements: see [SPEC.md](SPEC.md).
