@@ -2,9 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getExpensesInRange, getSetting, SETTING_BUDGET, type Category } from '../db'
 import { monthRange } from '../lib/dates'
 
-/** All categories (empty array while loading). */
+/**
+ * Expense categories (empty array while loading).
+ * TODO(UI step): income categories are filtered out until the income UI exists.
+ */
 export function useCategories(): Category[] {
-  return useLiveQuery(() => db.categories.toArray(), []) ?? []
+  return useLiveQuery(() => db.categories.where('type').equals('expense').sortBy('id'), []) ?? []
 }
 
 /** Categories as a lookup table by id. */
@@ -17,7 +20,7 @@ export function useCategoryMap(): Map<number, Category> {
 export function useMonthExpenses(month: string) {
   return useLiveQuery(() => {
     const { start, end } = monthRange(month)
-    return getExpensesInRange(start, end)
+    return getExpensesInRange(start, end).then((list) => list.filter((e) => e.type === 'expense')) // TODO(UI step): show income too
   }, [month])
 }
 

@@ -1,24 +1,29 @@
-import { addRecurring, db, type Expense } from '../db'
+import { addRecurring, db, type EntryType, type Expense } from '../db'
 import { addMonths, currentMonth, daysInMonth, today } from './dates'
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min)
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1))
 const euros = (min: number, max: number) => Math.round(rand(min, max) * 100) // → cents
 
-/** Adds realistic sample expenses for the last 12 months (including this month up to today). */
+/** Adds realistic sample income and expenses for the last 12 months (including this month up to today), plus a few category budgets. */
 export async function loadDemoData(): Promise<number> {
   const categories = await db.categories.toArray()
   if (categories.length === 0) return 0
-  // Look up by default name; fall back to the first category if it was renamed/deleted.
-  const idOf = (name: string) => (categories.find((c) => c.name === name) ?? categories[0]).id
+  // Look up by default name and type; fall back to the first category of that type if it was renamed/deleted.
+  const idOf = (name: string, type: EntryType = 'expense') => {
+    const ofType = categories.filter((c) => c.type === type)
+    return (ofType.find((c) => c.name === name) ?? ofType[0] ?? categories[0]).id
+  }
 
   const todayStr = today()
   const items: Omit<Expense, 'id'>[] = []
-  const add = (month: string, day: number, category: string, amountCents: number, note?: string) => {
+  const addEntry = (type: EntryType, month: string, day: number, category: string, amountCents: number, note?: string) => {
     const date = `${month}-${String(Math.min(day, daysInMonth(month))).padStart(2, '0')}`
     if (date > todayStr) return // nothing in the future
-    items.push({ type: 'expense', amountCents, categoryId: idOf(category), date, note, createdAt: Date.now() + items.length })
+    items.push({ type, amountCents, categoryId: idOf(category, type), date, note, createdAt: Date.now() + items.length })
   }
+  const add = (month: string, day: number, category: string, amountCents: number, note?: string) =>
+    addEntry('expense', month, day, category, amountCents, note)
 
   for (let i = -11; i <= 0; i++) {
     const m = addMonths(currentMonth(), i)
@@ -34,6 +39,11 @@ export async function loadDemoData(): Promise<number> {
     if (Math.random() < 0.5) add(m, anyDay(), 'Health', euros(5, 60), pick(['Apotheke', 'Arzt', undefined]))
     if (Math.random() < 0.15) add(m, anyDay(), 'Travel', euros(120, 600), pick(['Hotel', 'Flug', 'Wochenendtrip']))
     if (Math.random() < 0.5) add(m, anyDay(), 'Other', euros(5, 40))
+
+    // Occasional income on top of the monthly salary (a recurring series, see below).
+    if (Math.random() < 0.12) addEntry('income', m, anyDay(), 'Family', euros(100, 300), pick(['Geschenk von den Eltern', 'Oma', 'Zuschuss']))
+    if (Math.random() < 0.1) addEntry('income', m, anyDay(), 'Refunds', euros(10, 90), pick(['Rückerstattung', 'Retoure']))
+    if (Math.random() < 0.15) addEntry('income', m, anyDay(), 'Side income', euros(60, 250), pick(['Nebenjob', 'Nachhilfe', 'Verkauf']))
   }
 
   await db.expenses.bulkAdd(items as Expense[])
@@ -42,13 +52,19 @@ export async function loadDemoData(): Promise<number> {
   const expensesBefore = await db.expenses.count()
   const firstMonth = addMonths(currentMonth(), -11)
   const series = [
-    { category: 'Housing', amountCents: 72000, note: 'Miete', frequency: 'monthly', startDate: `${firstMonth}-01` },
-    { category: 'Subscriptions', amountCents: 1299, note: 'Streaming', frequency: 'monthly', startDate: `${firstMonth}-05` },
-    { category: 'Subscriptions', amountCents: 1099, note: 'Musik', frequency: 'monthly', startDate: `${firstMonth}-08` },
-    { category: 'Other', amountCents: 24000, note: 'Haftpflichtversicherung', frequency: 'yearly', startDate: `${addMonths(currentMonth(), -5)}-15` },
+    { type: 'income', category: 'Salary', amountCents: 240000, note: 'Gehalt', frequency: 'monthly', startDate: `${firstMonth}-01` },
+    { type: 'expense', category: 'Housing', amountCents: 72000, note: 'Miete', frequency: 'monthly', startDate: `${firstMonth}-01` },
+    { type: 'expense', category: 'Subscriptions', amountCents: 1299, note: 'Streaming', frequency: 'monthly', startDate: `${firstMonth}-05` },
+    { type: 'expense', category: 'Subscriptions', amountCents: 1099, note: 'Musik', frequency: 'monthly', startDate: `${firstMonth}-08` },
+    { type: 'expense', category: 'Other', amountCents: 24000, note: 'Haftpflichtversicherung', frequency: 'yearly', startDate: `${addMonths(currentMonth(), -5)}-15` },
   ] as const
   for (const { category, ...rest } of series) {
-    await addRecurring({ ...rest, categoryId: idOf(category), interval: 1 }, true)
+    await addRecurring({ ...rest, categoryId: idOf(category, rest.type), interval: 1 }, true)
+  }
+
+  // A few monthly category budgets (for the Stats tab).
+  for (const [name, budgetCents] of [['Eating out', 15000], ['Shopping', 10000], ['Leisure', 8000]] as const) {
+    await db.categories.update(idOf(name), { budgetCents })
   }
   return items.length + (await db.expenses.count()) - expensesBefore
 }

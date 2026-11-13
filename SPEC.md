@@ -107,3 +107,33 @@ Bottom tab navigation with 3 tabs:
 - Generated expenses show a small 🔁 icon in the list; editing one only changes that single expense.
 - Settings → "Wiederkehrende Ausgaben": list with schedule and next date, tap to edit (changes apply to future occurrences only), ⏸️/▶️ to pause/resume, delete with an optional "also delete generated expenses" checkbox, and "+ Wiederkehrende Ausgabe" to add one.
 - Stats: card "Anstehende Fixkosten diesen Monat" (current month only) listing the recurring costs still due this month and their sum.
+
+
+# Addendum: Income and category budgets
+
+(German UI text, like the rest of the app. Steps 1–4 below are done; the UI follows after review.)
+
+## Behaviour
+- Besides expenses the app tracks **income** (salary, family, side income, refunds, other). Income can be one-off or recurring with the same frequency options as recurring expenses; the same generator creates the entries.
+- The single monthly budget is **removed**. For the selected month the home screen shows income, expenses and what is left (**available = income − expenses**) with a progress bar for the share of the income already spent. Extra income (e.g. money from family) raises that month's available amount automatically.
+- **Every month starts fresh**: nothing carries over. The Stats tab shows an informational "Gesamtsaldo" (all-time income − expenses, green/red).
+- Optional **monthly budget per expense category** (Settings). The Stats tab shows spent vs. budget per category with a progress bar: green up to 80 %, amber above 80 %, red when over budget, plus the remaining amount.
+- Stats: summary cards for income, expenses and balance; savings rate = (income − expenses) / income (not shown without income); grouped bars income vs. expenses for the last 12 months with the balance as a line. All existing expense charts count expenses only.
+
+## Data model (Dexie version 3)
+- Income and expenses live in the **same tables** with `type: 'expense' | 'income'` (on `expenses`, `recurring`, `categories`). Amounts stay positive; the type gives the sign. Reason: identical shape, so recurrence generation, list, form, CSV and merge are reused.
+- `Category` has an optional `budgetCents` (monthly, expense categories only). Income categories are separate rows (default: Salary, Family, Side income, Refunds, Other).
+- Migration v2 → v3 (`db.version(3).upgrade`): all existing expenses, series and categories get `type: 'expense'`; default income categories are added; the old `monthlyBudgetCents` setting is deleted. No row is deleted or re-keyed. Covered by `src/db.migration.test.ts`.
+
+## Calculations (`src/lib/finance.ts`, unit-tested)
+`totals`, `availableToSpend`, `spentRatio`, `savingsRate`, `budgetStatus` (ok / warn above 80 % / over above 100 %), `expensesByCategory`, `categoryBudgetStatuses`, `monthlySeries`, `totalBalance`.
+
+## Export / import
+- CSV: new last column `Typ` (`Ausgabe` / `Einnahme`); file name `buchungen-<date>.csv`.
+- JSON backup `version: 3` includes `type`, income categories and `budgetCents`. Backups from v1/v2 (no `type`) import as expenses; on "replace" the default income categories are added; an old budget setting is ignored. "Merge" matches categories by name **and** type.
+
+## Demo data
+Monthly salary (recurring, 2.400 €), occasional money from family, side income and refunds, and budgets for Eating out (150 €), Shopping (100 €) and Leisure (80 €).
+
+## Interim state (until the UI step)
+Existing screens show **expenses only** (income and income categories are hidden), so totals and charts are not mixed up. The old Settings budget field still exists but does nothing useful; it is replaced in the UI step.

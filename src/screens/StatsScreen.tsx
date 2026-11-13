@@ -34,8 +34,11 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
 
   // One query for the last 12 months (ending with the selected month); everything is derived from it.
   const months = lastMonths(month, 12)
-  const all = useLiveQuery(() => getExpensesInRange(monthRange(months[0]).start, monthRange(month).end), [month])
-  const series = useLiveQuery(() => db.recurring.toArray(), [])
+  const all = useLiveQuery(
+    () => getExpensesInRange(monthRange(months[0]).start, monthRange(month).end).then((l) => l.filter((e) => e.type === 'expense')),
+    [month],
+  )
+  const series = useLiveQuery(() => db.recurring.filter((r) => r.type === 'expense').toArray(), [])
   if (!all || !series) return null
 
   const byMonth = (m: string) => all.filter((e) => monthOf(e.date) === m)

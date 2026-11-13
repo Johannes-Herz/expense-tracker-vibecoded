@@ -31,7 +31,7 @@ export default function SettingsScreen() {
 
   const [budgetText, setBudgetText] = useState('')
   const [editing, setEditing] = useState<Category | 'new' | null>(null)
-  const series = useLiveQuery(() => db.recurring.toArray(), []) ?? []
+  const series = useLiveQuery(() => db.recurring.filter((r) => r.type === 'expense').toArray(), []) ?? []
   // null = closed, 'new' = adding a series, RecurringExpense = editing one
   const [editingSeries, setEditingSeries] = useState<RecurringExpense | 'new' | null>(null)
   const [pendingImport, setPendingImport] = useState<Backup | null>(null)
