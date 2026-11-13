@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { addCategory, deleteCategoryIfUnused, isCategoryUsed, updateCategory, type Category, type EntryType } from '../db'
+import { useOverlayBack } from '../hooks/useOverlayBack'
 import { centsToInput, parseAmountToCents } from '../lib/format'
 import { useT } from '../lib/i18n'
 import ConfirmDialog from './ConfirmDialog'
@@ -16,6 +17,7 @@ interface Props {
 
 export default function CategoryEditor({ category, type: newType, onClose }: Props) {
   const t = useT()
+  useOverlayBack(onClose) // the back gesture closes the editor
   const type = category?.type ?? newType ?? 'expense'
   const isIncome = type === 'income'
   const [name, setName] = useState(category?.name ?? '')

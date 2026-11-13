@@ -1,4 +1,5 @@
 import CategoryTrendChart from '../charts/CategoryTrendChart'
+import { useOverlayBack } from '../hooks/useOverlayBack'
 import { formatEUR } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { trendColor } from '../lib/trendStyle'
@@ -15,6 +16,7 @@ interface Props {
 /** Bottom sheet with the 12-month course of one category and its average. */
 export default function TrendDetail({ row, entries, opts, onClose }: Props) {
   const t = useT()
+  useOverlayBack(onClose) // the back gesture closes the sheet
   const series = categorySeries(entries, row.category.id, opts)
 
   return (
