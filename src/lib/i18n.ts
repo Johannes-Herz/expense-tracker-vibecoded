@@ -139,7 +139,6 @@ const de = {
   categoryBudgets: 'Kategorie-Budgets',
   noBudgetsYet: 'Noch keine Budgets. Lege in den Einstellungen bei einer Ausgaben-Kategorie ein Monatsbudget fest.',
   incomeVsExpenses: 'Einnahmen und Ausgaben (12 Monate)',
-  upcomingFixed: 'Anstehende Fixkosten diesen Monat',
   noExpensesMonth: 'Keine Ausgaben in diesem Monat.',
   byCategory: 'Nach Kategorie',
   cumulative: 'Kumuliert im Monat',
@@ -159,7 +158,12 @@ const de = {
   budgetOfPlanned: (spent: string, planned: string, budget: string) => `${spent} gebucht + ${planned} geplant von ${budget}`,
   plannedHorizonHint: 'Geplante Buchungen werden nur für den aktuellen und den nächsten Monat angezeigt.',
   plannedEntry: 'Geplante wiederkehrende Buchung – tippen, um die Serie zu öffnen',
-  plannedCard: 'Geplant in diesem Monat',
+  plannedCard: 'Geplante Buchungen',
+  bookedPlannedShort: (booked: string, planned: string, minus = false) =>
+    `${booked} gebucht ${minus ? '−' : '+'} ${planned} geplant`,
+  totalBalanceForecast: 'Zum Monatsende inkl. geplant',
+  incomePlanned: 'Einnahmen (geplant)',
+  expensePlanned: 'Ausgaben (geplant)',
   plannedNote: 'Wird am Fälligkeitstag automatisch gebucht.',
 }
 
@@ -285,7 +289,6 @@ const en: Dict = {
   categoryBudgets: 'Category budgets',
   noBudgetsYet: 'No budgets yet. Set a monthly budget on an expense category in Settings.',
   incomeVsExpenses: 'Income and expenses (12 months)',
-  upcomingFixed: 'Upcoming fixed costs this month',
   noExpensesMonth: 'No expenses this month.',
   byCategory: 'By category',
   cumulative: 'Cumulative in month',
@@ -303,7 +306,11 @@ const en: Dict = {
   budgetOfPlanned: (spent, planned, budget) => `${spent} booked + ${planned} planned of ${budget}`,
   plannedHorizonHint: 'Planned entries are only shown for the current and the next month.',
   plannedEntry: 'Planned recurring entry – tap to open the series',
-  plannedCard: 'Planned this month',
+  plannedCard: 'Planned entries',
+  bookedPlannedShort: (booked, planned, minus = false) => `${booked} booked ${minus ? '−' : '+'} ${planned} planned`,
+  totalBalanceForecast: 'By month end incl. planned',
+  incomePlanned: 'Income (planned)',
+  expensePlanned: 'Expenses (planned)',
   plannedNote: 'Booked automatically on the due date.',
 }
 
