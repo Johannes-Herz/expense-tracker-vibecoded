@@ -17,7 +17,7 @@ export async function loadDemoData(): Promise<number> {
   const add = (month: string, day: number, category: string, amountCents: number, note?: string) => {
     const date = `${month}-${String(Math.min(day, daysInMonth(month))).padStart(2, '0')}`
     if (date > todayStr) return // nothing in the future
-    items.push({ amountCents, categoryId: idOf(category), date, note, createdAt: Date.now() + items.length })
+    items.push({ type: 'expense', amountCents, categoryId: idOf(category), date, note, createdAt: Date.now() + items.length })
   }
 
   for (let i = -11; i <= 0; i++) {

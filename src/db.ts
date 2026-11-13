@@ -2,15 +2,22 @@ import Dexie, { type EntityTable } from 'dexie'
 import { cursorOnResume, initialCursor, planGeneration, type Frequency } from './lib/recurrence'
 import { today } from './lib/dates'
 
+/** Expenses and income share the same tables; this field tells them apart. */
+export type EntryType = 'expense' | 'income'
+
 export interface Category {
   id: number
+  type: EntryType // a category belongs either to expenses or to income
   name: string
   emoji: string
   color: string // hex, e.g. "#22c55e"
+  budgetCents?: number // optional monthly budget, expense categories only
 }
 
+// An "Expense" row is either an expense or an income (see `type`). Amounts are always positive.
 export interface Expense {
   id: number
+  type: EntryType
   amountCents: number // EUR in cents, always a positive integer
   categoryId: number
   date: string // local date as "YYYY-MM-DD" (sorts correctly as text)
@@ -25,6 +32,7 @@ export interface Expense {
 // A recurring expense definition ("series"). Generated expenses are normal Expense rows.
 export interface RecurringExpense {
   id: number
+  type: EntryType
   amountCents: number
   categoryId: number
   note?: string // name, e.g. "Miete"
@@ -44,17 +52,27 @@ export interface Setting {
 }
 
 export const DEFAULT_CATEGORIES: Omit<Category, 'id'>[] = [
-  { name: 'Groceries', emoji: '🛒', color: '#22c55e' },
-  { name: 'Eating out', emoji: '🍽️', color: '#f97316' },
-  { name: 'Transport', emoji: '🚌', color: '#3b82f6' },
-  { name: 'Housing', emoji: '🏠', color: '#8b5cf6' },
-  { name: 'Shopping', emoji: '🛍️', color: '#ec4899' },
-  { name: 'Health', emoji: '💊', color: '#ef4444' },
-  { name: 'Leisure', emoji: '🎉', color: '#eab308' },
-  { name: 'Subscriptions', emoji: '📺', color: '#06b6d4' },
-  { name: 'Travel', emoji: '✈️', color: '#14b8a6' },
-  { name: 'Other', emoji: '📦', color: '#64748b' },
+  { type: 'expense', name: 'Groceries', emoji: '🛒', color: '#22c55e' },
+  { type: 'expense', name: 'Eating out', emoji: '🍽️', color: '#f97316' },
+  { type: 'expense', name: 'Transport', emoji: '🚌', color: '#3b82f6' },
+  { type: 'expense', name: 'Housing', emoji: '🏠', color: '#8b5cf6' },
+  { type: 'expense', name: 'Shopping', emoji: '🛍️', color: '#ec4899' },
+  { type: 'expense', name: 'Health', emoji: '💊', color: '#ef4444' },
+  { type: 'expense', name: 'Leisure', emoji: '🎉', color: '#eab308' },
+  { type: 'expense', name: 'Subscriptions', emoji: '📺', color: '#06b6d4' },
+  { type: 'expense', name: 'Travel', emoji: '✈️', color: '#14b8a6' },
+  { type: 'expense', name: 'Other', emoji: '📦', color: '#64748b' },
 ]
+
+export const DEFAULT_INCOME_CATEGORIES: Omit<Category, 'id'>[] = [
+  { type: 'income', name: 'Salary', emoji: '💼', color: '#16a34a' },
+  { type: 'income', name: 'Family', emoji: '👪', color: '#0ea5e9' },
+  { type: 'income', name: 'Side income', emoji: '🛠️', color: '#a855f7' },
+  { type: 'income', name: 'Refunds', emoji: '↩️', color: '#f59e0b' },
+  { type: 'income', name: 'Other', emoji: '💰', color: '#64748b' },
+]
+
+export const ALL_DEFAULT_CATEGORIES = [...DEFAULT_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES]
 
 export const db = new Dexie('ExpenseTracker') as Dexie & {
   expenses: EntityTable<Expense, 'id'>
@@ -77,9 +95,26 @@ db.version(2).stores({
   recurring: '++id, categoryId',
 })
 
-// Fill the category list the very first time the database is created.
+const OLD_SETTING_BUDGET = 'monthlyBudgetCents' // dropped in v3
+
+// v3: income. Every existing expense, series and category is an expense (`type`), income categories
+// are added, and the old global monthly budget is dropped (replaced by income-based "available").
+// Nothing is deleted or re-keyed, so all existing ids and links stay valid.
+db.version(3)
+  .stores({ categories: '++id, type' })
+  .upgrade(async (tx) => {
+    for (const name of ['expenses', 'recurring', 'categories']) {
+      await tx.table(name).toCollection().modify((row) => {
+        row.type ??= 'expense'
+      })
+    }
+    await tx.table('categories').bulkAdd(DEFAULT_INCOME_CATEGORIES)
+    await tx.table('settings').delete(OLD_SETTING_BUDGET)
+  })
+
+// Fill the category lists the very first time the database is created.
 db.on('populate', (tx) => {
-  tx.table('categories').bulkAdd(DEFAULT_CATEGORIES)
+  tx.table('categories').bulkAdd(ALL_DEFAULT_CATEGORIES)
 })
 
 // ---------- Settings helpers ----------
@@ -92,7 +127,7 @@ export async function setSetting(key: string, value: unknown) {
   await db.settings.put({ key, value })
 }
 
-export const SETTING_BUDGET = 'monthlyBudgetCents' // number | undefined
+export const SETTING_BUDGET = OLD_SETTING_BUDGET // TODO: removed together with the old budget UI
 export const SETTING_THEME = 'theme' // 'system' | 'light' | 'dark'
 
 // ---------- Expense helpers ----------
@@ -103,8 +138,10 @@ export async function getExpensesInRange(startDate: string, endDate: string) {
   return list.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
 }
 
-export function addExpense(data: Omit<Expense, 'id' | 'createdAt'>) {
-  return db.expenses.add({ ...data, createdAt: Date.now() } as Expense)
+type WithOptionalType<T> = Omit<T, 'type'> & { type?: EntryType }
+
+export function addExpense(data: WithOptionalType<Omit<Expense, 'id' | 'createdAt'>>) {
+  return db.expenses.add({ type: 'expense', ...data, createdAt: Date.now() } as Expense)
 }
 
 export function updateExpense(id: number, data: Partial<Omit<Expense, 'id' | 'createdAt'>>) {
@@ -145,6 +182,7 @@ export function generateDueExpenses(todayStr: string = today()): Promise<number>
         const fresh = occurrences
           .filter((date) => !existing.has(date))
           .map((date, i) => ({
+            type: series.type,
             amountCents: series.amountCents,
             categoryId: series.categoryId,
             date,
@@ -164,10 +202,11 @@ export function generateDueExpenses(todayStr: string = today()): Promise<number>
 
 /** Create a series. `backfill` = also create occurrences between the start date and today. */
 export async function addRecurring(
-  data: Omit<RecurringExpense, 'id' | 'createdAt' | 'paused' | 'generatedThrough'>,
+  data: WithOptionalType<Omit<RecurringExpense, 'id' | 'createdAt' | 'paused' | 'generatedThrough'>>,
   backfill: boolean,
 ): Promise<number> {
   const id = await db.recurring.add({
+    type: 'expense',
     ...data,
     paused: false,
     generatedThrough: initialCursor(backfill, today()),
@@ -209,8 +248,8 @@ export function deleteRecurring(id: number, opts: { deleteExpenses?: boolean } =
 
 // ---------- Category helpers ----------
 
-export function addCategory(data: Omit<Category, 'id'>) {
-  return db.categories.add(data as Category)
+export function addCategory(data: WithOptionalType<Omit<Category, 'id'>>) {
+  return db.categories.add({ type: 'expense', ...data } as Category)
 }
 
 export function updateCategory(id: number, data: Partial<Omit<Category, 'id'>>) {
@@ -236,6 +275,6 @@ export async function deleteCategoryIfUnused(id: number) {
 export async function resetAllData() {
   await db.transaction('rw', db.expenses, db.recurring, db.categories, db.settings, async () => {
     await Promise.all([db.expenses.clear(), db.recurring.clear(), db.categories.clear(), db.settings.clear()])
-    await db.categories.bulkAdd(DEFAULT_CATEGORIES as Category[])
+    await db.categories.bulkAdd(ALL_DEFAULT_CATEGORIES as Category[])
   })
 }
