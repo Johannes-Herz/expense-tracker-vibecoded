@@ -21,6 +21,11 @@ export default function BudgetsView() {
           {c.emoji}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
+        {c.trackWeekly && c.budgetCents ? (
+          <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300">
+            {t.weeklyTag}
+          </span>
+        ) : null}
         <span className={`shrink-0 tabular-nums ${rightClass}`}>{right}</span>
       </button>
     </li>

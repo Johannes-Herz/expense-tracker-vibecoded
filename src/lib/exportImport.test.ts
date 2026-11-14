@@ -140,3 +140,27 @@ describe('category trend flag in backups', () => {
     expect((await db.categories.toArray())[0].hideFromTrends).toBeUndefined()
   })
 })
+
+describe('weekly tracking flag in backups (version 4)', () => {
+  const base = { app: 'ExpenseTracker', expenses: [], recurring: [], settings: [] }
+
+  it('trackWeekly and the budget survive a replace import', async () => {
+    const id = (await db.categories.add({ type: 'expense', name: 'Groceries', emoji: '🛒', color: '#000', budgetCents: 40000, trackWeekly: true } as never)) as number
+    const backup = await snapshot()
+    await importBackup(backup, 'replace')
+    const c = await db.categories.get(id)
+    expect([c?.budgetCents, c?.trackWeekly]).toEqual([40000, true])
+  })
+
+  it.each([1, 2, 3])('version %i backups import with the flag off', async (version) => {
+    const backup = parseBackup(JSON.stringify({ ...base, version, categories: [{ id: 1, name: 'A', type: 'expense', budgetCents: 1000 }] }))
+    expect(backup.categories[0].trackWeekly).toBe(false)
+    await importBackup(backup, 'replace')
+    const c = (await db.categories.toArray()).find((x) => x.name === 'A')
+    expect([c?.budgetCents, c?.trackWeekly]).toEqual([1000, false])
+  })
+
+  it('exports version 4 and rejects a non-boolean flag', () => {
+    expect(() => parseBackup(JSON.stringify({ ...base, version: 4, categories: [{ id: 1, name: 'A', type: 'expense', trackWeekly: 'yes' }] }))).toThrow()
+  })
+})

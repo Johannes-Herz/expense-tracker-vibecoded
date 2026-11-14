@@ -25,10 +25,12 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
   const [color, setColor] = useState(category?.color ?? COLORS[0])
   const [budget, setBudget] = useState(category?.budgetCents ? centsToInput(category.budgetCents) : '')
   const [hideFromTrends, setHideFromTrends] = useState(category?.hideFromTrends ?? false)
+  const [trackWeekly, setTrackWeekly] = useState(category?.trackWeekly ?? false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [used, setUsed] = useState(false)
 
   const budgetCents = budget.trim() === '' ? undefined : parseAmountToCents(budget)
+  const hasBudget = typeof budgetCents === 'number' && budgetCents > 0
   const budgetValid = isIncome || budget.trim() === '' || budgetCents !== null
   const canSave = name.trim() !== '' && emoji.trim() !== '' && budgetValid
 
@@ -37,6 +39,7 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
     // An empty budget field removes the budget (undefined deletes the stored field).
     const data = { name: name.trim(), emoji: emoji.trim(), color, budgetCents: isIncome ? undefined : (budgetCents ?? undefined),
       hideFromTrends: !isIncome && hideFromTrends ? true : undefined, // undefined removes the stored field
+      trackWeekly: isIncome ? undefined : hasBudget && trackWeekly, // only effective together with a budget
     }
     if (category) await updateCategory(category.id, data)
     else await addCategory({ ...data, type })
@@ -112,6 +115,20 @@ export default function CategoryEditor({ category, type: newType, onClose }: Pro
               />
               <span className="text-slate-500">€</span>
             </div>
+            {hasBudget && (
+              <label className="mt-2 flex min-h-12 items-start gap-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={trackWeekly}
+                  onChange={(e) => setTrackWeekly(e.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-indigo-600"
+                />
+                <span>
+                  <span className="block text-sm">{t.trackWeekly}</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">{t.trackWeeklyHint}</span>
+                </span>
+              </label>
+            )}
           </div>
         )}
 

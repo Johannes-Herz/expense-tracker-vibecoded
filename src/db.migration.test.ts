@@ -55,3 +55,37 @@ describe('database upgrade to v3 (income)', () => {
     expect((await db.settings.get('theme'))?.value).toBe('dark')
   })
 })
+
+// Builds a database as version 3 of the app left it (the database name is fixed, so the earlier
+// test's database is deleted and db.ts is loaded again), then opens it with the current schema.
+describe('database upgrade to v4 (weekly budgets)', () => {
+  it('keeps categories, budgets and entries; weekly tracking starts off', async () => {
+    const { vi } = await import('vitest')
+    vi.resetModules()
+    await Dexie.delete('ExpenseTracker')
+    const old = new Dexie('ExpenseTracker')
+    old.version(1).stores({ expenses: '++id, date, categoryId', categories: '++id', settings: 'key' })
+    old.version(2).stores({ expenses: '++id, date, categoryId, &[recurringId+occurrenceDate]', recurring: '++id, categoryId' })
+    old.version(3).stores({ categories: '++id, type' })
+    await old.table('categories').bulkAdd([
+      { type: 'expense', name: 'Groceries', emoji: '🛒', color: '#22c55e', budgetCents: 40000, hideFromTrends: true },
+      { type: 'expense', name: 'Housing', emoji: '🏠', color: '#8b5cf6' },
+      { type: 'income', name: 'Salary', emoji: '💼', color: '#16a34a' },
+    ])
+    await old.table('expenses').add({ type: 'expense', amountCents: 1250, categoryId: 1, date: '2026-10-03', note: 'Rewe', createdAt: 1 })
+    await old.table('settings').add({ key: 'theme', value: 'dark' })
+    old.close()
+
+    const { db } = await import('./db')
+    const cats = await db.categories.orderBy('id').toArray()
+    expect(cats.map((c) => [c.id, c.name, c.budgetCents, c.hideFromTrends, c.trackWeekly])).toEqual([
+      [1, 'Groceries', 40000, true, false],
+      [2, 'Housing', undefined, undefined, false],
+      [3, 'Salary', undefined, undefined, false],
+    ])
+    expect(await db.expenses.count()).toBe(1)
+    expect((await db.expenses.get(1))?.note).toBe('Rewe')
+    expect((await db.settings.get('theme'))?.value).toBe('dark')
+    expect(db.verno).toBe(4)
+  })
+})
