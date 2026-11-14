@@ -63,3 +63,11 @@ export function parseAmountToCents(input: string): number | null {
 export function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2).replace('.', ',')
 }
+
+/** "2026-11-09", "2026-11-15" → "9.–15. Nov"; one day → "30. Nov". Both dates must be in the same month. */
+export function formatDayRange(start: string, end: string): string {
+  const [y, m, d1] = start.split('-').map(Number)
+  const d2 = Number(end.slice(8))
+  const month = new Date(y, m - 1, 1).toLocaleDateString(nameLocale(), { month: 'short' }).replace(/\.$/, '')
+  return d1 === d2 ? `${d1}. ${month}` : `${d1}.–${d2}. ${month}`
+}

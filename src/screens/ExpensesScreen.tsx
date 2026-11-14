@@ -10,6 +10,7 @@ import { forecastTotals } from '../lib/finance'
 import { formatEUR } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { isBeyondPlanningHorizon, type PlannedEntry } from '../lib/planned'
+import { weekReports } from '../lib/weeklyBudgets'
 
 interface Props {
   month: string
@@ -31,6 +32,7 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
   const f = forecastTotals(expenses ?? [], plannedList)
   const hasPlanned = plannedList.length > 0
   const available = f.forecast.balanceCents
+  const weeks = weekReports(month, categories, expenses ?? [], plannedList, today())
 
   async function openSeries(p: PlannedEntry) {
     const series = await db.recurring.get(p.seriesId)
@@ -99,6 +101,7 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
             categories={categoryMap}
             onSelect={setEditing}
             onSelectPlanned={openSeries}
+            weeks={weeks}
           />
         )
       )}
