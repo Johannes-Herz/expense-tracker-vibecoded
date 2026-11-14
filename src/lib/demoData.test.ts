@@ -28,5 +28,6 @@ describe('demo data', () => {
 
     const budgets = Object.fromEntries(categories.filter((c) => c.budgetCents).map((c) => [c.name, c.budgetCents]))
     expect(budgets).toEqual({ 'Eating out': 15000, Shopping: 10000, Leisure: 8000 })
+    expect(categories.filter((c) => c.trackWeekly).map((c) => c.name)).toEqual(['Eating out'])
   })
 })

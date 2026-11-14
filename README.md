@@ -9,6 +9,7 @@ A personal expense tracker as an installable PWA (made for Android/Chrome). All 
 - Expenses **and income**, one-off or recurring (daily/weekly/monthly/yearly), each with their own editable categories.
 - The home screen shows, for the selected month, income, expenses and what is **available** (income − expenses) with a progress bar. Every month starts fresh.
 - Optional **monthly budget per expense category** (Planung → Budgets, or in the category editor), shown in the Stats tab (green / amber above 80 % / red when over).
+- **Weekly budgets:** tick "Wöchentlich verfolgen" for a category with a monthly budget. The weekly budget is derived from it (monthly ÷ days in the month × days of the week in the month, ISO weeks Monday–Sunday, split weeks are divided by days, no carry-over, cents add up exactly). The home list is grouped by week; each week divider shows ▼ (kept) / ▲ (over) / ● (still open) per tracked category, tap for details.
 - Stats: income, expenses, balance, savings rate, income vs. expenses for 12 months, category and spending charts (expenses only), total balance.
 - CSV export (with a type column) and JSON backup (older backups still import).
 - **Planned recurring payments:** for the current and the next month, recurring expenses and income that are due but not booked yet are shown as *planned* (home screen, list, Stats, category budgets, charts). The forecast is the main number, booked-only values are shown next to it. Planned entries are calculated on the fly, never stored, and are not part of exports.
@@ -80,8 +81,8 @@ Data is stored only on the device. Use **Einstellungen → Daten & Backup → Si
 
 ```
 src/
-  db.ts                 Dexie schema (v3), default categories, DB helpers
-  lib/                  formatting (de-DE), dates, recurrence, finance calculations, export/import, demo data, theme
+  db.ts                 Dexie schema (v4), default categories, DB helpers
+  lib/                  formatting (de-DE), dates, recurrence, finance calculations, ISO weeks and weekly budgets, export/import, demo data, theme
   hooks/useData.ts      live queries (categories, month entries)
   components/           tab bar, month selector, expense list/form, dialogs, ...
   screens/              Expenses, Stats, Planning, Settings (+ settings/ sub-pages)

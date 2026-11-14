@@ -206,3 +206,40 @@ Structure/navigation only; data, calculations and the backup format are unchange
 - Switching tabs replaces the history entry; opening a settings sub-page adds one. The on-screen "‹" behaves like the back gesture (or goes to the parent page when the sub-page was opened directly).
 - Open forms, sheets and dialogs (entry/series form, category editor, trend detail, confirmations, import dialog) are **overlays**: while any is open the back gesture closes the topmost one first (`useOverlayBack`). Overlays share a single history entry that is added when the first opens and removed lazily when the last is closed by the UI, which avoids races with the asynchronous history. Logic and tests (fake history): `src/lib/nav.ts`, `nav.test.ts`.
 - Back from a tab's start page leaves the app as before.
+
+
+# Addendum: Weekly budgets per category
+
+Weekly tracking is an extra view on top of the monthly category budgets. Monthly budgets and all existing calculations are unchanged.
+
+## Behaviour
+- In the category editor, an expense category **with a monthly budget** has a checkbox "Wöchentlich verfolgen" (Planung → Budgets shows a "wöchentlich" tag for such categories). The weekly budget is **never entered**; it is derived from the monthly budget. Removing the budget switches tracking off.
+- **Weeks** are ISO weeks, Monday to Sunday (KW numbers; 2027-01-01 belongs to KW 53 of 2026).
+- **Daily budget** = monthly budget ÷ days in the month. **Weekly budget** = daily budget × the days of that week that lie inside the month (a full week = 7 days, a split week only its own days).
+- **Split weeks:** a week that touches two months is split by days. Mon 30 Nov – Sun 6 Dec: 30 Nov belongs to November (1 day of November's budget, only spending of 30 Nov), 1–6 Dec to December. Each month's view shows only its part, and the budget of each part comes from that month's own monthly budget.
+- **No carry-over:** every week has its own fixed share.
+- **Cents:** the day budgets are distributed with cumulative rounding, `floor(monthly × d / daysInMonth)` accumulated per day, and a week gets the difference. So the weekly budgets of a month add up **exactly** to the monthly budget (28/29/30/31 days), each week is within one cent of its exact share, and leftover cents are spread instead of piling up on one week.
+- **What counts:** expenses only (never income), booked **plus planned** recurring payments (same forecast principle as the category budgets; planned entries exist only for the current and next month). The detail sheet shows planned amounts as a lighter bar segment.
+
+## Indicator logic
+- Spending only grows during a week, so only "over" is reliable while a week runs (same idea as the running month in the category trends):
+  - **red ▲** as soon as spent > the week's budget (also while the week is running; exactly on budget is not over);
+  - **green ▼** once the week is over and the budget was kept;
+  - **grey ●** while the week is still running (or not started) and not exceeded.
+- The pro-rata budget for the days passed so far ("Anteilig bis heute") is shown in the detail sheet of the running week only, as information.
+- A weekly budget of 0 cents (tiny monthly budget, short week) is exceeded by any spending.
+
+## UI
+- **Home list:** the month's entries are grouped by week, newest week first. A divider per week shows "KW 46 · 9.–15. Nov"; a split week shows its part and its day count, "KW 49 · 30. Nov (1 Tag)" / "KW 49 · 1.–6. Dez (6 Tage)" (English: "Wk", "1 day"). Weeks without entries have no divider.
+- **Indicators:** on the right of the divider one chip per tracked category (emoji + ▼/▲/●). One line only: at most **4 chips** and a "+N" chip for the rest; over-budget categories are sorted first so they are never hidden. Tapping the divider or a chip opens a bottom sheet (back gesture closes it) with spent vs. weekly budget, progress bar, status and the derivation note per tracked category. Without tracked categories the divider is just a label.
+
+## Data model (Dexie version 4)
+- `Category.trackWeekly?: boolean`, not indexed. Migration v3 → v4 only writes `trackWeekly = false` on existing categories; nothing is deleted or re-keyed (`src/db.migration.test.ts`).
+- **Backup version 4** includes the flag. Version 1–3 backups import with the flag off (missing = off). A non-boolean flag is rejected. "Merge" leaves categories that already exist (matched by name and type) unchanged, as before.
+- Demo data tracks "Eating out" weekly.
+
+## Code
+- `src/lib/weeks.ts` (+ tests): ISO week, week segments per month, cent distribution. All date arithmetic uses UTC timestamps, so daylight-saving changes cannot shift days; tests cover split weeks, February in common and leap years, 30/31-day months, KW 53 / KW 1, DST weeks, and "weekly budgets add up to the monthly budget" for many amounts.
+- `src/lib/weeklyBudgets.ts` (+ tests): `weekReports` (status per tracked category and week), `trackedCategories`.
+- UI: `WeekDivider.tsx`, `WeekDetail.tsx`, `ExpenseList.tsx`, `ExpensesScreen.tsx`, `CategoryEditor.tsx`, `BudgetsView.tsx`.
+

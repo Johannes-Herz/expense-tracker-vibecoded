@@ -64,7 +64,7 @@ export async function loadDemoData(): Promise<number> {
 
   // A few monthly category budgets (for the Stats tab).
   for (const [name, budgetCents] of [['Eating out', 15000], ['Shopping', 10000], ['Leisure', 8000]] as const) {
-    await db.categories.update(idOf(name), { budgetCents })
+    await db.categories.update(idOf(name), { budgetCents, trackWeekly: name === 'Eating out' }) // one weekly-tracked example
   }
   return items.length + (await db.expenses.count()) - expensesBefore
 }
