@@ -50,7 +50,20 @@ export default function WeekDetail({ report, categories, onClose }: Props) {
                     {LEVEL_SYMBOL[item.level]} {levelText[item.level]}
                   </span>
                 </div>
-                <BudgetBar spentCents={item.spentCents - item.plannedCents} plannedCents={item.plannedCents} budgetCents={item.budgetCents} />
+                <p className="mb-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  {t.weekAvailable(
+                    formatEUR(item.budgetCents),
+                    item.carryCents === 0 ? undefined : (item.carryCents > 0 ? '+' : '') + formatEUR(item.carryCents),
+                    formatEUR(item.availableCents),
+                  )}
+                </p>
+                {item.availableCents > 0 || item.remainingCents >= 0 ? (
+                  <BudgetBar spentCents={item.spentCents - item.plannedCents} plannedCents={item.plannedCents} budgetCents={item.availableCents} />
+                ) : (
+                  <p className="text-sm font-medium text-red-500">
+                    {t.weekNoRoom(formatEUR(item.spentCents), formatEUR(Math.max(-item.remainingCents, 0)))}
+                  </p>
+                )}
                 {report.state === 'current' && (
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t.weekPace(formatEUR(item.paceBudgetCents))}</p>
                 )}

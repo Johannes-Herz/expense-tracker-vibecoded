@@ -224,8 +224,11 @@ const de = {
   weekLevelUnder: 'Im Wochenbudget',
   weekLevelRunning: 'Noch offen',
   weekPace: (amount: string) => `Anteilig bis heute: ${amount}`,
+  weekAvailable: (budget: string, carry: string | undefined, available: string) =>
+    carry ? `Wochenbudget ${budget} · Übertrag ${carry} = ${available} verfügbar` : `Wochenbudget ${budget}`,
+  weekNoRoom: (spent: string, over: string) => `Kein Spielraum: ${over} über dem Budget bis Wochenende (diese Woche ausgegeben: ${spent})`,
   weekBudgetNote:
-    'Wochenbudget = Monatsbudget ÷ Tage im Monat × Tage dieser Woche im Monat. Kein Übertrag in die nächste Woche. Geplante Buchungen sind eingerechnet.',
+    'Wochenbudget = Monatsbudget ÷ Tage im Monat × Tage dieser Woche im Monat. Was eine Woche übrig lässt (oder zu viel ausgibt), wird in die nächsten Wochen des Monats übertragen; zu Monatsbeginn startet der Übertrag bei 0. Geplante Buchungen sind eingerechnet.',
   crashTitle: 'Etwas ist schiefgelaufen',
   crashInfo: 'Deine Daten sind sicher auf dem Gerät gespeichert. Lade die App neu, um weiterzumachen.',
   crashReload: 'Neu laden',
@@ -437,8 +440,11 @@ const en: Dict = {
   weekLevelUnder: 'Within the weekly budget',
   weekLevelRunning: 'Still open',
   weekPace: (amount) => `Pro rata up to today: ${amount}`,
+  weekAvailable: (budget, carry, available) =>
+    carry ? `Weekly budget ${budget} · carry-over ${carry} = ${available} available` : `Weekly budget ${budget}`,
+  weekNoRoom: (spent, over) => `No room left: ${over} over budget up to the end of the week (spent this week: ${spent})`,
   weekBudgetNote:
-    'Weekly budget = monthly budget ÷ days in the month × days of this week in the month. No carry-over to the next week. Planned entries are included.',
+    'Weekly budget = monthly budget ÷ days in the month × days of this week in the month. What a week leaves unused (or overspends) carries over to the following weeks of the month; the carry-over starts at 0 at the beginning of each month. Planned entries are included.',
   crashTitle: 'Something went wrong',
   crashInfo: 'Your data is safe on this device. Reload the app to continue.',
   crashReload: 'Reload',

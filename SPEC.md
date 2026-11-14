@@ -217,21 +217,22 @@ Weekly tracking is an extra view on top of the monthly category budgets. Monthly
 - **Weeks** are ISO weeks, Monday to Sunday (KW numbers; 2027-01-01 belongs to KW 53 of 2026).
 - **Daily budget** = monthly budget ÷ days in the month. **Weekly budget** = daily budget × the days of that week that lie inside the month (a full week = 7 days, a split week only its own days).
 - **Split weeks:** a week that touches two months is split by days. Mon 30 Nov – Sun 6 Dec: 30 Nov belongs to November (1 day of November's budget, only spending of 30 Nov), 1–6 Dec to December. Each month's view shows only its part, and the budget of each part comes from that month's own monthly budget.
-- **No carry-over:** every week has its own fixed share.
+- **Carry-over (running balance within the month):** what a week does not use carries forward to the following weeks of the same month, and so does overspending ("both ways"). Reason: a bulk shop that covers more than one week must not look like overspending. Available in a week = its own share + carry; carry = budget of all earlier days of the month − spending of those days. The **balance starts at 0 on the 1st of every month** (no carry across months; the new-month part of a split week starts fresh). Limit: nothing is borrowed from future weeks, so a bulk shop in the very first days of a month still shows red until the budget catches up. *Earlier design (replaced): every week had its own fixed share without carry-over.*
 - **Cents:** the day budgets are distributed with cumulative rounding, `floor(monthly × d / daysInMonth)` accumulated per day, and a week gets the difference. So the weekly budgets of a month add up **exactly** to the monthly budget (28/29/30/31 days), each week is within one cent of its exact share, and leftover cents are spread instead of piling up on one week.
 - **What counts:** expenses only (never income), booked **plus planned** recurring payments (same forecast principle as the category budgets; planned entries exist only for the current and next month). The detail sheet shows planned amounts as a lighter bar segment.
 
 ## Indicator logic
+- A week is judged by the running balance: **spending from the 1st through the end of the week vs. the budget of the same days** (`cumSpent` vs. `cumBudget`). So the last week of a month always gets the same verdict as the monthly budget.
 - Spending only grows during a week, so only "over" is reliable while a week runs (same idea as the running month in the category trends):
-  - **red ▲** as soon as spent > the week's budget (also while the week is running; exactly on budget is not over);
-  - **green ▼** once the week is over and the budget was kept;
+  - **red ▲** as soon as cumulative spending > cumulative budget (also while the week is running; exactly on budget is not over; a week can stay red because of earlier weeks until the budget catches up);
+  - **green ▼** once the week is over and the balance is not negative;
   - **grey ●** while the week is still running (or not started) and not exceeded.
-- The pro-rata budget for the days passed so far ("Anteilig bis heute") is shown in the detail sheet of the running week only, as information.
-- A weekly budget of 0 cents (tiny monthly budget, short week) is exceeded by any spending.
+- The budget for the days from the 1st up to today ("Anteilig bis heute") is shown in the detail sheet of the running week only, as information.
+- A week whose own share is 0 cents (tiny monthly budget, short week) is judged by the carry, so it is not red as long as earlier leftovers cover the spending.
 
 ## UI
 - **Home list:** the month's entries are grouped by week, newest week first. A divider per week shows "KW 46 · 9.–15. Nov"; a split week shows its part and its day count, "KW 49 · 30. Nov (1 Tag)" / "KW 49 · 1.–6. Dez (6 Tage)" (English: "Wk", "1 day"). Weeks without entries have no divider.
-- **Indicators:** on the right of the divider one chip per tracked category (emoji + ▼/▲/●). One line only: at most **4 chips** and a "+N" chip for the rest; over-budget categories are sorted first so they are never hidden. Tapping the divider or a chip opens a bottom sheet (back gesture closes it) with spent vs. weekly budget, progress bar, status and the derivation note per tracked category. Without tracked categories the divider is just a label.
+- **Indicators:** on the right of the divider one chip per tracked category (emoji + ▼/▲/●). One line only: at most **4 chips** and a "+N" chip for the rest; over-budget categories are sorted first so they are never hidden. Tapping the divider or a chip opens a bottom sheet (back gesture closes it) with, per tracked category, "Wochenbudget + Übertrag = verfügbar", a progress bar of this week's spending against the available amount (or a "no room" line when the carry is used up), status and the derivation note. Without tracked categories the divider is just a label.
 - **Stats tab → Kategorien:** card "Wochen-Budgets" (only when at least one category is tracked weekly) for the selected month: one row per tracked category, one column per week (KW number, tooltip with the days), the same ▼ / ▲ / ● marks, and "x von y Wochen im Budget" counting finished weeks only. Same pure functions as the home list, nothing extra stored.
 
 ## Data model (Dexie version 4)

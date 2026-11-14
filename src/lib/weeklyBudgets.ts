@@ -2,29 +2,41 @@
 // Pure functions, see weeks.ts for the week and cent rules.
 //
 // Which spending counts: expenses only (income never), booked + planned recurring payments (the same
-// forecast logic as the category budgets). Nothing carries over between weeks.
+// forecast logic as the category budgets).
+//
+// Running balance within the month: what a week does not use carries forward, and so does overspending.
+// So a week is judged by the budget of all days from the 1st through the end of the week against all
+// spending in that time. A bulk shop that covers two weeks is not "overspending" as long as the budget
+// of those weeks (plus earlier leftovers) pays for it, and the last week of the month gets exactly the
+// verdict of the monthly budget. The balance starts at 0 on the 1st of every month (a week split
+// between two months starts fresh in the new month).
 import type { Category } from '../db'
 import type { Entry } from './finance'
-import { budgetUntil, weekSegments, weeklyBudgetCents, type WeekSegment } from './weeks'
+import { budgetForDays, weekSegments, weeklyBudgetCents, type WeekSegment } from './weeks'
 
 /** past = week is over, current = today is in it, future = not started yet (only planned entries can exist). */
 export type WeekState = 'past' | 'current' | 'future'
 
 /**
- * over    = spent more than the week's budget (red ▲; certain, spending can only grow)
- * under   = week is over and the budget was kept (green ▼)
+ * over    = spending so far in the month exceeds the budget up to the end of this week (red ▲; certain
+ *           for a running week, spending can only grow)
+ * under   = week is over and the running balance is not negative (green ▼)
  * running = week not over yet and not exceeded: still open (neutral ●)
  */
 export type WeekLevel = 'over' | 'under' | 'running'
 
 export interface WeekCategoryStatus {
   categoryId: number
-  budgetCents: number // weekly budget (derived from the monthly budget)
-  spentCents: number // booked + planned
+  budgetCents: number // this week's own share of the monthly budget
+  carryCents: number // balance carried in from earlier weeks of the month (negative = already overspent)
+  availableCents: number // budgetCents + carryCents
+  spentCents: number // spent in this week only, booked + planned
   plannedCents: number // the planned part of spentCents
-  remainingCents: number // budget − spent (negative = over)
-  usedRatio: number // spent / budget; 0 if the budget is 0 and nothing was spent, Infinity if only spending
-  paceBudgetCents: number // budget for the days up to today (current week only, else = budgetCents)
+  cumBudgetCents: number // budget of all days from the 1st through the end of this week
+  cumSpentCents: number // spending from the 1st through the end of this week
+  remainingCents: number // cumBudgetCents − cumSpentCents (negative = over)
+  usedRatio: number // cumSpent / cumBudget; 0 if the budget is 0 and nothing was spent, Infinity if only spending
+  paceBudgetCents: number // budget for the days from the 1st up to today (current week only, else = cumBudgetCents)
   level: WeekLevel
 }
 
@@ -62,30 +74,42 @@ export function weekReports(
   today: string,
 ): WeekReport[] {
   const tracked = trackedCategories(categories)
+  const monthStart = `${month}-01`
+  const todayDay = Number(today.slice(8))
   return weekSegments(month).map((segment) => {
     const state = weekState(segment, today)
-    const inWeek = (e: Entry) => e.type === 'expense' && e.date >= segment.start && e.date <= segment.end
-    const bookedWeek = booked.filter(inWeek)
-    const plannedWeek = planned.filter(inWeek)
+    const startDay = Number(segment.start.slice(8))
+    const endDay = Number(segment.end.slice(8))
     const items = tracked.map((c): WeekCategoryStatus => {
       const monthly = c.budgetCents!
+      const sum = (list: Entry[], from: string, to: string) =>
+        list
+          .filter((e) => e.type === 'expense' && e.categoryId === c.id && e.date >= from && e.date <= to)
+          .reduce((total, e) => total + e.amountCents, 0)
+      const all = [...booked, ...planned]
       const budgetCents = weeklyBudgetCents(monthly, segment)
-      const bookedSum = bookedWeek.filter((e) => e.categoryId === c.id).reduce((s, e) => s + e.amountCents, 0)
-      const plannedCents = plannedWeek.filter((e) => e.categoryId === c.id).reduce((s, e) => s + e.amountCents, 0)
-      const spentCents = bookedSum + plannedCents
+      const cumBudgetCents = budgetForDays(monthly, month, 1, endDay)
+      const prevCumBudget = budgetForDays(monthly, month, 1, startDay - 1)
+      const cumSpentCents = sum(all, monthStart, segment.end)
+      const prevCumSpent = cumSpentCents - sum(all, segment.start, segment.end)
+      const carryCents = prevCumBudget - prevCumSpent
       return {
         categoryId: c.id,
         budgetCents,
-        spentCents,
-        plannedCents,
-        remainingCents: budgetCents - spentCents,
-        usedRatio: budgetCents > 0 ? spentCents / budgetCents : spentCents > 0 ? Infinity : 0,
-        paceBudgetCents: state === 'current' ? budgetUntil(monthly, segment, today) : budgetCents,
-        level: weekLevel(spentCents, budgetCents, state),
+        carryCents,
+        availableCents: budgetCents + carryCents,
+        spentCents: sum(all, segment.start, segment.end),
+        plannedCents: sum(planned, segment.start, segment.end),
+        cumBudgetCents,
+        cumSpentCents,
+        remainingCents: cumBudgetCents - cumSpentCents,
+        usedRatio: cumBudgetCents > 0 ? cumSpentCents / cumBudgetCents : cumSpentCents > 0 ? Infinity : 0,
+        paceBudgetCents: state === 'current' ? budgetForDays(monthly, month, 1, todayDay) : cumBudgetCents,
+        level: weekLevel(cumSpentCents, cumBudgetCents, state),
       }
     })
     // Over-budget categories first (stable, so the rest keeps the category order).
-    items.sort((a, b) => Number(b.level === 'over') - Number(a.level === 'over'))
+    items.sort((x, y) => Number(y.level === 'over') - Number(x.level === 'over'))
     return { segment, state, items }
   })
 }
