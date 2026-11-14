@@ -3,6 +3,7 @@ import BudgetBar from '../components/BudgetBar'
 import ExpenseForm from '../components/ExpenseForm'
 import ExpenseList from '../components/ExpenseList'
 import MonthSelector from '../components/MonthSelector'
+import WeekDetail from '../components/WeekDetail'
 import { db, type Expense, type RecurringExpense } from '../db'
 import { useCategories, useMonthExpenses, usePlanned } from '../hooks/useData'
 import { today } from '../lib/dates'
@@ -26,6 +27,8 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
   const [editing, setEditing] = useState<Expense | 'new' | null>(null)
   // A planned entry opens its recurring series instead
   const [editingSeries, setEditingSeries] = useState<RecurringExpense | null>(null)
+  // Week whose details are open (by segment key, so the sheet stays live when entries change)
+  const [weekKey, setWeekKey] = useState<string | null>(null)
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]))
   const plannedList = planned ?? []
@@ -102,6 +105,7 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
             onSelect={setEditing}
             onSelectPlanned={openSeries}
             weeks={weeks}
+            onSelectWeek={(w) => setWeekKey(w.segment.key)}
           />
         )
       )}
@@ -120,6 +124,10 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
           categories={categories}
           onClose={() => setEditing(null)}
         />
+      )}
+
+      {weekKey && weeks.find((w) => w.segment.key === weekKey) && (
+        <WeekDetail report={weeks.find((w) => w.segment.key === weekKey)!} categories={categoryMap} onClose={() => setWeekKey(null)} />
       )}
 
       {editingSeries && (
