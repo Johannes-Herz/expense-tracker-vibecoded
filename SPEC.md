@@ -232,6 +232,7 @@ Weekly tracking is an extra view on top of the monthly category budgets. Monthly
 ## UI
 - **Home list:** the month's entries are grouped by week, newest week first. A divider per week shows "KW 46 · 9.–15. Nov"; a split week shows its part and its day count, "KW 49 · 30. Nov (1 Tag)" / "KW 49 · 1.–6. Dez (6 Tage)" (English: "Wk", "1 day"). Weeks without entries have no divider.
 - **Indicators:** on the right of the divider one chip per tracked category (emoji + ▼/▲/●). One line only: at most **4 chips** and a "+N" chip for the rest; over-budget categories are sorted first so they are never hidden. Tapping the divider or a chip opens a bottom sheet (back gesture closes it) with spent vs. weekly budget, progress bar, status and the derivation note per tracked category. Without tracked categories the divider is just a label.
+- **Stats tab → Kategorien:** card "Wochen-Budgets" (only when at least one category is tracked weekly) for the selected month: one row per tracked category, one column per week (KW number, tooltip with the days), the same ▼ / ▲ / ● marks, and "x von y Wochen im Budget" counting finished weeks only. Same pure functions as the home list, nothing extra stored.
 
 ## Data model (Dexie version 4)
 - `Category.trackWeekly?: boolean`, not indexed. Migration v3 → v4 only writes `trackWeekly = false` on existing categories; nothing is deleted or re-keyed (`src/db.migration.test.ts`).
@@ -241,5 +242,5 @@ Weekly tracking is an extra view on top of the monthly category budgets. Monthly
 ## Code
 - `src/lib/weeks.ts` (+ tests): ISO week, week segments per month, cent distribution. All date arithmetic uses UTC timestamps, so daylight-saving changes cannot shift days; tests cover split weeks, February in common and leap years, 30/31-day months, KW 53 / KW 1, DST weeks, and "weekly budgets add up to the monthly budget" for many amounts.
 - `src/lib/weeklyBudgets.ts` (+ tests): `weekReports` (status per tracked category and week), `trackedCategories`.
-- UI: `WeekDivider.tsx`, `WeekDetail.tsx`, `ExpenseList.tsx`, `ExpensesScreen.tsx`, `CategoryEditor.tsx`, `BudgetsView.tsx`.
+- UI: `WeekDivider.tsx`, `WeekDetail.tsx`, `stats/WeeklyBudgetsCard.tsx`, `ExpenseList.tsx`, `ExpensesScreen.tsx`, `CategoryEditor.tsx`, `BudgetsView.tsx`.
 

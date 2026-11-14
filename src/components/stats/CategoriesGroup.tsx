@@ -5,6 +5,7 @@ import { useT } from '../../lib/i18n'
 import BudgetBar from '../BudgetBar'
 import CategoryTrends from '../CategoryTrends'
 import { Card } from './shared'
+import WeeklyBudgetsCard from './WeeklyBudgetsCard'
 import type { StatsData } from './types'
 
 /** "Where does the money go?": budgets, trends, split by category. */
@@ -42,6 +43,8 @@ export default function CategoriesGroup({ d }: { d: StatsData }) {
           {t.manageBudgets}
         </button>
       </Card>
+
+      <WeeklyBudgetsCard d={d} />
 
       <CategoryTrends month={d.month} categories={d.categories} />
 

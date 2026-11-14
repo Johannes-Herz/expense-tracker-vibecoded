@@ -213,6 +213,9 @@ const de = {
   weeklyTag: 'wöchentlich',
   weekLabel: (week: number, range: string, splitDays?: number) =>
     `KW ${week} · ${range}${splitDays === undefined ? '' : ` (${splitDays === 1 ? '1 Tag' : `${splitDays} Tage`})`}`,
+  weeklyBudgetsTitle: 'Wochen-Budgets',
+  weeksInBudget: (kept: number, total: number) => `${kept} von ${total} Wochen im Budget`,
+  weeklyBudgetsLegend: 'Spalten = Kalenderwochen des Monats. ▼ im Budget · ▲ drüber · ● noch offen.',
   weekDetails: 'Wochendetails',
   weekStatePast: 'Woche abgeschlossen',
   weekStateCurrent: 'Woche läuft noch',
@@ -423,6 +426,9 @@ const en: Dict = {
   weeklyTag: 'weekly',
   weekLabel: (week, range, splitDays) =>
     `Wk ${week} · ${range}${splitDays === undefined ? '' : ` (${splitDays === 1 ? '1 day' : `${splitDays} days`})`}`,
+  weeklyBudgetsTitle: 'Weekly budgets',
+  weeksInBudget: (kept, total) => `${kept} of ${total} weeks within budget`,
+  weeklyBudgetsLegend: 'Columns = calendar weeks of the month. ▼ within budget · ▲ over · ● still open.',
   weekDetails: 'Week details',
   weekStatePast: 'Week is over',
   weekStateCurrent: 'Week in progress',
