@@ -4,7 +4,7 @@ import { tNow } from './i18n'
 
 interface Backup {
   app: 'ExpenseTracker'
-  version: 1 | 2 | 3 // 2 added `recurring`, 3 added income (`type`) and category budgets; older backups still import
+  version: 1 | 2 | 3 | 4 // 2 added `recurring`, 3 added income (`type`) and category budgets, 4 the category flag `trackWeekly`; older backups still import
   exportedAt: string
   categories: Category[]
   expenses: Expense[]
@@ -51,7 +51,7 @@ export async function exportCSV() {
 export async function exportJSON() {
   const backup: Backup = {
     app: 'ExpenseTracker',
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     categories: await db.categories.toArray(),
     expenses: await db.expenses.toArray(),
@@ -77,7 +77,8 @@ export function parseBackup(text: string): Backup {
     typeof c.id === 'number' &&
     typeof c.name === 'string' &&
     okType(c.type) &&
-    (c.budgetCents === undefined || (Number.isInteger(c.budgetCents) && c.budgetCents >= 0))
+    (c.budgetCents === undefined || (Number.isInteger(c.budgetCents) && c.budgetCents >= 0)) &&
+    (c.trackWeekly === undefined || typeof c.trackWeekly === 'boolean')
   const okExpense = (e: Expense) =>
     typeof e.amountCents === 'number' && typeof e.categoryId === 'number' && okType(e.type) && /^\d{4}-\d{2}-\d{2}$/.test(e.date)
   if (!data.categories.every(okCategory) || !data.expenses.every(okExpense)) {
@@ -98,7 +99,8 @@ export function parseBackup(text: string): Backup {
   const withType = <T extends { type?: EntryType }>(list: T[]) => list.map((x) => ({ ...x, type: x.type ?? 'expense' }))
   return {
     ...(data as Backup),
-    categories: withType(data.categories),
+    // Backups before version 4 have no `trackWeekly`: weekly tracking is off.
+    categories: withType(data.categories).map((c) => ({ ...c, trackWeekly: c.trackWeekly ?? false })),
     expenses: withType(data.expenses),
     recurring: withType(recurring),
     settings: (Array.isArray(data.settings) ? data.settings : []).filter((s) => s.key !== 'monthlyBudgetCents'),

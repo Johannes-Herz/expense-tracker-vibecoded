@@ -13,6 +13,7 @@ export interface Category {
   color: string // hex, e.g. "#22c55e"
   budgetCents?: number // optional monthly budget, expense categories only
   hideFromTrends?: boolean // expense categories only: leave out of the Stats "category trends" (e.g. savings)
+  trackWeekly?: boolean // expense categories with a budget only: also track the derived weekly budget (never entered separately)
 }
 
 // An "Expense" row is either an expense or an income (see `type`). Amounts are always positive.
@@ -112,6 +113,16 @@ db.version(3)
     await tx.table('categories').bulkAdd(DEFAULT_INCOME_CATEGORIES)
     await tx.table('settings').delete(OLD_SETTING_BUDGET)
   })
+
+// v4: weekly budgets. Categories get the flag `trackWeekly` (off for everything that exists). The flag
+// is not indexed, so the stores stay the same; the upgrade only writes the explicit default.
+db.version(4)
+  .stores({})
+  .upgrade((tx) =>
+    tx.table('categories').toCollection().modify((row) => {
+      row.trackWeekly ??= false
+    }),
+  )
 
 // Fill the category lists the very first time the database is created.
 db.on('populate', (tx) => {
