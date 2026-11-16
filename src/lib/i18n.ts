@@ -153,6 +153,7 @@ const de = {
   errInvalidJson: 'Die Datei ist kein gültiges JSON.',
   errNotBackup: 'Das ist keine Expense-Tracker-Sicherung.',
   errInvalidData: 'Die Sicherung enthält ungültige Daten.',
+  errNewerBackup: 'Diese Sicherung stammt aus einer neueren App-Version. Bitte die App aktualisieren.',
   // stats
   totalBalance: 'Gesamtsaldo (alle Monate)',
   totalBalanceInfo: 'Alle Einnahmen minus alle Ausgaben – nur zur Information, es wird nichts in den nächsten Monat übertragen.',
@@ -374,6 +375,7 @@ const en: Dict = {
   errInvalidJson: 'The file is not valid JSON.',
   errNotBackup: 'This is not an Expense Tracker backup.',
   errInvalidData: 'The backup contains invalid data.',
+  errNewerBackup: 'This backup was made by a newer version of the app. Please update the app.',
   totalBalance: 'Total balance (all months)',
   totalBalanceInfo: 'All income minus all expenses – for information only, nothing is carried over to the next month.',
   savingsRate: 'Savings rate',
