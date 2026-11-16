@@ -24,6 +24,13 @@ export function formatDate(date: string): string {
   return `${d}.${m}.${y}`
 }
 
+/** ISO timestamp → "12.11.2026, 22:48" (local time) */
+export function formatDateTime(iso: string): string {
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 /** "2026-11-12" → "Do., 12.11." (used as day heading in lists) */
 export function formatDayHeading(date: string): string {
   const [y, m, d] = date.split('-').map(Number)
