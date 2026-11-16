@@ -11,7 +11,7 @@ interface Props {
 export default function PageHeader({ title, onBack, children }: Props) {
   const t = useT()
   return (
-    <div className="sticky top-0 z-10 -mx-4 bg-slate-50/95 px-4 pb-1 pt-[max(0.25rem,env(safe-area-inset-top))] backdrop-blur dark:bg-slate-950/95">
+    <div className="sticky top-0 z-10 -mx-4 bg-slate-50/95 px-4 pb-1 pt-[max(0.25rem,var(--sat))] backdrop-blur dark:bg-slate-950/95">
       <div className="space-y-1 rounded-2xl bg-white p-2 shadow-sm dark:bg-slate-900">
         <div className="flex items-center gap-1">
           {onBack && (

@@ -113,7 +113,7 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
       <button
         onClick={() => setEditing('new')}
         aria-label={t.addEntry}
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-[max(1.25rem,calc(50%-12rem+1.25rem))] z-30 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-600 text-4xl text-white shadow-lg transition-transform active:scale-90"
+        className="fixed bottom-[calc(5rem+var(--sab))] right-[max(1.25rem,calc(50%-12rem+1.25rem))] z-30 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-600 text-4xl text-white shadow-lg transition-transform active:scale-90"
       >
         +
       </button>

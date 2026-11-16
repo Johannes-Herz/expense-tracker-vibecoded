@@ -14,3 +14,10 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Safe areas: the browser's env() on the web / new WebViews, or the --safe-area-inset-* variables that
+   Capacitor's SystemBars injects into older Android WebViews. */
+:root {
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+}
