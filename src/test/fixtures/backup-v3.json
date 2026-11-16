@@ -1,0 +1,21 @@
+{
+  "app": "ExpenseTracker",
+  "version": 3,
+  "exportedAt": "2026-08-01T10:00:00.000Z",
+  "categories": [
+    { "id": 1, "type": "expense", "name": "Groceries", "emoji": "🛒", "color": "#22c55e", "budgetCents": 40000 },
+    { "id": 2, "type": "expense", "name": "Savings", "emoji": "🐷", "color": "#64748b", "hideFromTrends": true },
+    { "id": 3, "type": "income", "name": "Salary", "emoji": "💼", "color": "#16a34a" }
+  ],
+  "expenses": [
+    { "id": 1, "type": "expense", "amountCents": 5320, "categoryId": 1, "date": "2026-07-14", "note": "Einkauf", "createdAt": 1784023200000 },
+    { "id": 2, "type": "income", "amountCents": 240000, "categoryId": 3, "date": "2026-07-01", "note": "Gehalt", "createdAt": 1782813600000, "recurringId": 1, "occurrenceDate": "2026-07-01" }
+  ],
+  "recurring": [
+    { "id": 1, "type": "income", "amountCents": 240000, "categoryId": 3, "note": "Gehalt", "frequency": "monthly", "interval": 1, "startDate": "2026-06-01", "paused": false, "generatedThrough": "2026-07-31", "createdAt": 1780300000000 }
+  ],
+  "settings": [
+    { "key": "language", "value": "de" },
+    { "key": "trendThresholdPct", "value": 15 }
+  ]
+}

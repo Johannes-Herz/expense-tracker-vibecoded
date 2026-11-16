@@ -1,0 +1,20 @@
+{
+  "app": "ExpenseTracker",
+  "version": 2,
+  "exportedAt": "2026-05-01T10:00:00.000Z",
+  "categories": [
+    { "id": 1, "name": "Groceries", "emoji": "🛒", "color": "#22c55e" },
+    { "id": 2, "name": "Housing", "emoji": "🏠", "color": "#8b5cf6" }
+  ],
+  "expenses": [
+    { "id": 1, "amountCents": 2210, "categoryId": 1, "date": "2026-04-03", "createdAt": 1775210400000 },
+    { "id": 2, "amountCents": 72000, "categoryId": 2, "date": "2026-03-01", "note": "Miete", "createdAt": 1772359200000, "recurringId": 1, "occurrenceDate": "2026-03-01" },
+    { "id": 3, "amountCents": 72000, "categoryId": 2, "date": "2026-04-01", "note": "Miete", "createdAt": 1775037600000, "recurringId": 1, "occurrenceDate": "2026-04-01" }
+  ],
+  "recurring": [
+    { "id": 1, "amountCents": 72000, "categoryId": 2, "note": "Miete", "frequency": "monthly", "interval": 1, "startDate": "2026-03-01", "paused": false, "generatedThrough": "2026-04-30", "createdAt": 1772359000000 }
+  ],
+  "settings": [
+    { "key": "monthlyBudgetCents", "value": 150000 }
+  ]
+}

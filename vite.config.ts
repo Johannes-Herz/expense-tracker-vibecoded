@@ -7,9 +7,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 const REPO_NAME = 'expense-tracker-vibecoded'
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => {
+export default defineConfig(({ command, mode }) => {
+  // `vite build --mode android` is the Capacitor app: relative base, no service worker, own output folder.
+  const native = mode === 'android'
   // Dev server runs at "/", production build is served from /<repo>/ on GitHub Pages.
-  const base = command === 'build' ? `/${REPO_NAME}/` : '/'
+  const base = native ? './' : command === 'build' ? `/${REPO_NAME}/` : '/'
 
   return {
     base,
@@ -17,6 +19,7 @@ export default defineConfig(({ command }) => {
       react(),
       tailwindcss(),
       VitePWA({
+        disable: native, // the native app needs no service worker, manifest or install prompt
         registerType: 'autoUpdate', // new versions install silently in the background
         includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
         manifest: {
@@ -43,6 +46,6 @@ export default defineConfig(({ command }) => {
       }),
     ],
     // The whole app is precached for offline use anyway, so one bigger chunk is fine.
-    build: { chunkSizeWarningLimit: 800 },
+    build: { chunkSizeWarningLimit: 800, ...(native && { outDir: 'dist-android' }) },
   }
 })

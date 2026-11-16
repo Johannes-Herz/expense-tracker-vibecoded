@@ -4,6 +4,7 @@ import ExpenseForm from '../components/ExpenseForm'
 import ExpenseList from '../components/ExpenseList'
 import MonthSelector from '../components/MonthSelector'
 import WeekDetail from '../components/WeekDetail'
+import WelcomeCard from '../components/WelcomeCard'
 import { db, type Expense, type RecurringExpense } from '../db'
 import { useCategories, useMonthExpenses, usePlanned } from '../hooks/useData'
 import { today } from '../lib/dates'
@@ -44,6 +45,7 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
 
   return (
     <div className="space-y-4">
+      <WelcomeCard />
       <div className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900">
         <MonthSelector month={month} onChange={onMonthChange} />
         <div className="mt-1 text-center text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -113,7 +115,7 @@ export default function ExpensesScreen({ month, onMonthChange }: Props) {
       <button
         onClick={() => setEditing('new')}
         aria-label={t.addEntry}
-        className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-[max(1.25rem,calc(50%-12rem+1.25rem))] z-30 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-600 text-4xl text-white shadow-lg transition-transform active:scale-90"
+        className="fixed bottom-[calc(5rem+var(--sab))] right-[max(1.25rem,calc(50%-12rem+1.25rem))] z-30 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-600 text-4xl text-white shadow-lg transition-transform active:scale-90"
       >
         +
       </button>

@@ -113,7 +113,7 @@ export default function StatsScreen({ month, onMonthChange }: Props) {
   return (
     <div className="space-y-4">
       {/* Month selector and group switch stay visible while scrolling; the month applies to every group. */}
-      <div className="sticky top-0 z-10 -mx-4 bg-slate-50/95 px-4 pb-1 pt-[max(0.25rem,env(safe-area-inset-top))] backdrop-blur dark:bg-slate-950/95">
+      <div className="sticky top-0 z-10 -mx-4 bg-slate-50/95 px-4 pb-1 pt-[max(0.25rem,var(--sat))] backdrop-blur dark:bg-slate-950/95">
         <div className="space-y-1 rounded-2xl bg-white p-2 shadow-sm dark:bg-slate-900">
           <MonthSelector month={month} onChange={onMonthChange} />
           <StatsGroupTabs

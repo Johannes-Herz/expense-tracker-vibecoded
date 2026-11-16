@@ -1,8 +1,9 @@
 import { DEFAULT_INCOME_CATEGORIES, db, type Category, type EntryType, type Expense, type RecurringExpense, type Setting } from '../db'
 import { centsToInput, formatDate } from './format'
 import { tNow } from './i18n'
+import { saveFile } from './files'
 
-interface Backup {
+export interface Backup {
   app: 'ExpenseTracker'
   version: 1 | 2 | 3 | 4 // 2 added `recurring`, 3 added income (`type`) and category budgets, 4 the category flag `trackWeekly`; older backups still import
   exportedAt: string
@@ -12,14 +13,7 @@ interface Backup {
   settings: Setting[]
 }
 
-function download(filename: string, content: string, mime: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
+const BACKUP_VERSION = 4
 
 const stamp = () => new Date().toISOString().slice(0, 10)
 
@@ -45,20 +39,26 @@ export async function buildCSV(): Promise<string> {
 }
 
 export async function exportCSV() {
-  download(`buchungen-${stamp()}.csv`, await buildCSV(), 'text/csv;charset=utf-8')
+  await saveFile(`buchungen-${stamp()}.csv`, await buildCSV(), 'text/csv')
 }
 
-export async function exportJSON() {
-  const backup: Backup = {
+/** The complete backup (current format version). Shared by the manual export and the automatic backups. */
+export async function buildBackup(): Promise<Backup> {
+  return {
     app: 'ExpenseTracker',
-    version: 4,
+    version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     categories: await db.categories.toArray(),
     expenses: await db.expenses.toArray(),
     recurring: await db.recurring.toArray(),
     settings: await db.settings.toArray(),
   }
-  download(`expensetracker-backup-${stamp()}.json`, JSON.stringify(backup, null, 2), 'application/json')
+}
+
+export const serializeBackup = (backup: Backup) => JSON.stringify(backup, null, 2)
+
+export async function exportJSON() {
+  await saveFile(`expensetracker-backup-${stamp()}.json`, serializeBackup(await buildBackup()), 'application/json')
 }
 
 /** Parses and validates a backup file. Throws an Error with a readable message if it is not valid. */
@@ -72,6 +72,7 @@ export function parseBackup(text: string): Backup {
   if (data.app !== 'ExpenseTracker' || !Array.isArray(data.categories) || !Array.isArray(data.expenses)) {
     throw new Error(tNow().errNotBackup)
   }
+  if (typeof data.version === 'number' && data.version > BACKUP_VERSION) throw new Error(tNow().errNewerBackup)
   const okType = (t: unknown) => t === undefined || t === 'expense' || t === 'income' // missing = old backup
   const okCategory = (c: Category) =>
     typeof c.id === 'number' &&

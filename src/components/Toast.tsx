@@ -10,7 +10,7 @@ export default function Toast({ message, onClose }: { message: string; onClose: 
   }, [message, onClose])
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5rem+var(--sab))] z-50 flex justify-center px-4">
       <div
         role="status"
         className="pointer-events-auto flex w-full max-w-md items-start justify-between gap-3 rounded-2xl bg-slate-900 p-3 text-sm text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"

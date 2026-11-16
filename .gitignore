@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+dist-android
+
+# Android signing: NEVER commit keystores or passwords
+*.jks
+*.keystore
+keystore.properties
+android/keystore.properties

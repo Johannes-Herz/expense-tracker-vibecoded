@@ -164,3 +164,10 @@ describe('weekly tracking flag in backups (version 4)', () => {
     expect(() => parseBackup(JSON.stringify({ ...base, version: 4, categories: [{ id: 1, name: 'A', type: 'expense', trackWeekly: 'yes' }] }))).toThrow()
   })
 })
+
+describe('backup version check', () => {
+  it('rejects a backup from a newer app version', () => {
+    const newer = JSON.stringify({ app: 'ExpenseTracker', version: 99, categories: [], expenses: [] })
+    expect(() => parseBackup(newer)).toThrow(/neueren|newer/)
+  })
+})

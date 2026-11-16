@@ -3,7 +3,9 @@ import { useRef, useState } from 'react'
 import Card from '../../components/Card'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import PageHeader from '../../components/PageHeader'
+import AutoBackupCard from '../../components/AutoBackupCard'
 import Toast from '../../components/Toast'
+import { isNative } from '../../lib/platform'
 import { db, resetAllData } from '../../db'
 import { useOverlayBack } from '../../hooks/useOverlayBack'
 import { loadDemoData } from '../../lib/demoData'
@@ -52,7 +54,7 @@ export default function DataPage({ onBack }: { onBack: () => void }) {
         <div className="space-y-2">
           <button className={button} onClick={exportJSON}>{t.exportJson}</button>
           <button className={button} onClick={exportCSV}>{t.exportCsv}</button>
-          <button className={button} onClick={() => fileInput.current?.click()}>{t.importJson}</button>
+          <button className={button} onClick={() => fileInput.current?.click()}>{isNative ? t.restoreBackup : t.importJson}</button>
           <input
             ref={fileInput}
             type="file"
@@ -62,6 +64,8 @@ export default function DataPage({ onBack }: { onBack: () => void }) {
           />
         </div>
       </Card>
+
+      {isNative && <AutoBackupCard onMessage={setMessage} />}
 
       {/* Rarely needed or risky: collapsed by default and visually separated from the backup buttons */}
       <button

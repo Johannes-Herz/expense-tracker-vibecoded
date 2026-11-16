@@ -32,7 +32,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="mx-auto min-h-full max-w-md px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="mx-auto min-h-full max-w-md px-4 pb-28 pt-[max(1rem,var(--sat))]">
       {tab === 'expenses' && <ExpensesScreen month={month} onMonthChange={setMonth} />}
       {tab === 'stats' && <StatsScreen month={month} onMonthChange={setMonth} />}
       {tab === 'planning' && <PlanningScreen />}
