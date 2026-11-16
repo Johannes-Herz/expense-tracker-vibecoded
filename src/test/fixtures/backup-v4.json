@@ -1,0 +1,20 @@
+{
+  "app": "ExpenseTracker",
+  "version": 4,
+  "exportedAt": "2026-11-16T21:48:00.000Z",
+  "categories": [
+    { "id": 1, "type": "expense", "name": "Eating out", "emoji": "🍽️", "color": "#f97316", "budgetCents": 15000, "trackWeekly": true },
+    { "id": 2, "type": "expense", "name": "Groceries", "emoji": "🛒", "color": "#22c55e", "budgetCents": 40000, "trackWeekly": false },
+    { "id": 3, "type": "income", "name": "Salary", "emoji": "💼", "color": "#16a34a", "trackWeekly": false }
+  ],
+  "expenses": [
+    { "id": 1, "type": "expense", "amountCents": 1890, "categoryId": 1, "date": "2026-11-12", "note": "Pizza", "createdAt": 1794000000000 },
+    { "id": 2, "type": "expense", "amountCents": 6420, "categoryId": 2, "date": "2026-11-14", "createdAt": 1794200000000 },
+    { "id": 3, "type": "income", "amountCents": 240000, "categoryId": 3, "date": "2026-11-01", "note": "Gehalt", "createdAt": 1793500000000 }
+  ],
+  "recurring": [],
+  "settings": [
+    { "key": "theme", "value": "light" },
+    { "key": "language", "value": "de" }
+  ]
+}

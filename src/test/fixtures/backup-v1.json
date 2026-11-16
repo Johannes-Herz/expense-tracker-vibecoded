@@ -1,0 +1,18 @@
+{
+  "app": "ExpenseTracker",
+  "version": 1,
+  "exportedAt": "2026-03-01T10:00:00.000Z",
+  "categories": [
+    { "id": 1, "name": "Groceries", "emoji": "🛒", "color": "#22c55e" },
+    { "id": 2, "name": "Transport", "emoji": "🚌", "color": "#3b82f6" }
+  ],
+  "expenses": [
+    { "id": 1, "amountCents": 1250, "categoryId": 1, "date": "2026-02-10", "note": "Wocheneinkauf", "createdAt": 1770717600000 },
+    { "id": 2, "amountCents": 299, "categoryId": 2, "date": "2026-02-11", "createdAt": 1770804000000 },
+    { "id": 3, "amountCents": 4580, "categoryId": 1, "date": "2026-02-20", "note": "Markt", "createdAt": 1771581600000 }
+  ],
+  "settings": [
+    { "key": "monthlyBudgetCents", "value": 90000 },
+    { "key": "theme", "value": "dark" }
+  ]
+}
