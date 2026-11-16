@@ -245,3 +245,36 @@ Weekly tracking is an extra view on top of the monthly category budgets. Monthly
 - `src/lib/weeklyBudgets.ts` (+ tests): `weekReports` (status per tracked category and week), `trackedCategories`.
 - UI: `WeekDivider.tsx`, `WeekDetail.tsx`, `stats/WeeklyBudgetsCard.tsx`, `ExpenseList.tsx`, `ExpensesScreen.tsx`, `CategoryEditor.tsx`, `BudgetsView.tsx`.
 
+
+
+# Addendum: Native Android app (Capacitor) and automatic backups
+
+The same code also runs as a native Android app. The PWA / GitHub Pages version is unchanged.
+
+## Build and packaging
+- **Capacitor 8** (`@capacitor/core`, `app`, `filesystem`, `share`; CLI and Android platform as dev dependencies). App name "Expense Tracker", **app id `de.johannes.expensetracker`** (final; changing it would create a different app with empty data). The Android project lives in `android/` and is committed; `local.properties`, build output, keystores and `keystore.properties` are gitignored.
+- **Two build modes:** `npm run build` (web, base `/expense-tracker-vibecoded/`, PWA/service worker, output `dist/`) and `npm run build:android` (`vite build --mode android`: base `./`, PWA plugin disabled, so no service worker/manifest/install prompt, output `dist-android/`). `capacitor.config.ts` uses `dist-android`.
+- **Scripts:** `android:sync`, `android:debug` (APK at `android/app/build/outputs/apk/debug/app-debug.apk`), `android:install` (adb), `android:release`, `android:install:release`, `android:assets` (icon and splash). Gradle is started through `scripts/gradle.mjs` (needs `ANDROID_HOME`).
+- **Debug vs. release:** the debug build has the id suffix `.debug` and the name "Expense Tracker Debug" (separate data, can sit next to the real app). Release builds are signed with the user's own keystore, read from the gitignored `android/keystore.properties` or from `ET_KEYSTORE_*` environment variables; without them the release APK is unsigned. Debug and release APKs cannot update each other (different keys). The keystore and its passwords must be backed up by the user; losing them means no updates over the installed app.
+- **Icon / splash:** adaptive icon (indigo background, white €) and light/dark splash generated with `@capacitor/assets` from `scripts/generate-android-assets.mjs`; Android 12+ splash colors in `styles.xml`.
+
+## Native behavior (differences from the PWA)
+- `src/lib/platform.ts` (`isNative`), `src/lib/native.ts`. **Back button/gesture:** `App` plugin `backButton` -> `history.back()` when the WebView can go back, otherwise the app exits (nav and overlay logic from the navigation addendum unchanged; back from a tab's start page still leaves the app).
+- **System bars:** Capacitor 8's built-in `SystemBars` plugin handles edge-to-edge insets (injects `--safe-area-inset-*` for older WebViews); the app uses `--sat` / `--sab` (max of `env()` and those variables) everywhere instead of raw `env(safe-area-inset-*)`. The bar icon style follows the app theme (`SystemBars.setStyle`), also for the manual light/dark setting.
+- **Exports:** `src/lib/files.ts` `saveFile`: browser download on the web; on Android the file is written to the app cache and the **share sheet** opens.
+- The native app has its **own storage** (WebView origin), separate from Chrome/PWA data: it starts empty. To move data, export a JSON backup in the PWA and restore it in the app.
+
+## Automatic backups
+- **Trigger:** Dexie hooks on `expenses`, `recurring`, `categories`, `settings` (create/update/delete) schedule a backup **5 s after the last change** (debounce); going to the background (`appStateChange`) and the button "Backup jetzt erstellen" write immediately; one check at app start. Runs never overlap (a change during a run causes one more run).
+- **Only when data changed:** SHA-256 of the backup content without `exportedAt`, compared with the last written one. Hash, last success time and last error are kept in `localStorage` (not in the database, so a backup is never a data change itself).
+- **Format:** the normal JSON backup, current version 4 (`buildBackup`, so any backup restores with the normal import). Files `expense-tracker-backup-YYYY-MM-DD_HH-mm.json` (local time) in the public folder `Documents/ExpenseTracker`; a second write in the same minute overwrites that file. **Max 3 files:** after writing, everything beyond the newest 3 visible files is deleted; failures are ignored.
+- **Failure:** a failed write stores the message, shows a red warning card in Daten & Backup, and is retried on the next change (the hash is only updated after a successful write).
+- **Android storage rules (verified on a Pixel):** the Filesystem plugin's `Directory.Documents` writes into the public Documents folder without any permission on Android 11+ (manifest permissions with `maxSdkVersion=29` and `requestLegacyExternalStorage` cover Android 10 and older). The app can only see, read and delete **files it created itself**. After uninstall + reinstall the old files stay in the folder but the new install sees 0 files and cannot delete them. Consequences (decision: accept it, no all-files permission, no custom plugin): **restore always uses the system file picker** (any file); "max 3" counts and deletes only files visible to this install; the UI says that older files can be removed in the Files app.
+- **Settings UI (Daten & Backup, app only):** card "Automatisches Backup" (folder, last successful backup time, "Backup jetzt erstellen") and the import button relabeled "Aus Backup wiederherstellen" (system picker, then the existing merge / replace flow with the typed ERSETZEN confirmation).
+- **First start:** while there are no entries (and "Neu starten" was not tapped), the home screen shows a welcome card with "Aus Backup wiederherstellen" (restores directly, since nothing is replaced) and "Neu starten".
+- **Code:** `src/lib/autoBackup.ts` (engine, dependency-injected, unit-tested with fake timers), `autoBackupSetup.ts` (wiring: Dexie hooks, app state, `useBackupState`), `backupStorage.ts` (Filesystem access), `components/AutoBackupCard.tsx`, `components/WelcomeCard.tsx`.
+
+## Backup compatibility
+- Backups from every format version (1-4) must keep importing in future versions. `src/test/fixtures/backup-v1.json` ... `backup-v4.json` are one sample per version; `src/lib/backupFixtures.test.ts` imports each (replace, merge, repeated merge) and checks the round trip of the current format. **A new backup version needs a new fixture and must not change the old ones.**
+- A backup with a `version` newer than the app knows is rejected with a clear message ("aus einer neueren App-Version").
+- The data model and Dexie schema are unchanged (still Dexie v4, backup version 4).
