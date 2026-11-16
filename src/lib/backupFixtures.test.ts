@@ -1,12 +1,16 @@
 // Backups written by every earlier app version must keep importing. One sample file per backup format version
 // lives in src/test/fixtures; NEVER edit them to make a test pass: fix the import code instead.
 import 'fake-indexeddb/auto'
-import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import { buildBackup, importBackup, parseBackup, serializeBackup } from './exportImport'
 
-const load = (v: number) => readFileSync(new URL(`../test/fixtures/backup-v${v}.json`, import.meta.url), 'utf8')
+import v1 from '../test/fixtures/backup-v1.json?raw'
+import v2 from '../test/fixtures/backup-v2.json?raw'
+import v3 from '../test/fixtures/backup-v3.json?raw'
+import v4 from '../test/fixtures/backup-v4.json?raw'
+
+const load = (v: number) => ({ 1: v1, 2: v2, 3: v3, 4: v4 })[v] as string
 
 // What each fixture contains: [expenses (incl. income), categories, recurring series]
 const EXPECTED: Record<number, [number, number, number]> = { 1: [3, 2, 0], 2: [3, 2, 1], 3: [2, 3, 1], 4: [3, 3, 0] }
