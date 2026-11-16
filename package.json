@@ -14,7 +14,8 @@
     "android:debug": "npm run android:sync && node scripts/gradle.mjs assembleDebug",
     "android:release": "npm run android:sync && node scripts/gradle.mjs assembleRelease",
     "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
-    "android:assets": "node scripts/generate-android-assets.mjs && capacitor-assets generate --android"
+    "android:assets": "node scripts/generate-android-assets.mjs && capacitor-assets generate --android",
+    "android:install:release": "adb install -r android/app/build/outputs/apk/release/app-release.apk"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",
